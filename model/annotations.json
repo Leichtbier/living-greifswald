@@ -1,41 +1,80 @@
 [
   {
-    "id": "amv8j5z3v",
+    "id": "amv8jc9xk",
     "status": "erledigt",
-    "created": "2026-10-14 21:56",
+    "created": "2026-10-14 22:01",
     "target": "Props_Steinbaenke/Steinbank_01",
     "object": "Props_Steinbaenke",
     "part": "Props_Steinbaenke/Steinbank_01",
     "source": null,
-    "material": "Concrete",
-    "side": "oben",
+    "material": "Wood_Light",
+    "side": "West",
     "pos": [
-      13.692,
-      0.45,
-      7.732
+      13.2,
+      0.422,
+      10.172
     ],
     "normal": [
+      -1,
       0,
-      1,
       0
     ],
     "scriptPos": [
-      13.692,
-      -7.732,
-      0.45
+      13.2,
+      -10.172,
+      0.422
     ],
     "view": [
-      8.113,
-      5.056,
-      3.248
+      6.23,
+      5.221,
+      11.295
     ],
     "shot": {
-      "file": "annotations/amv8j5z3v.jpg",
-      "x": 0.381,
-      "y": 0.447
+      "file": "annotations/amv8jc9xk.jpg",
+      "x": 0.634,
+      "y": 0.445
     },
-    "text": "Genau hier soll auch holz sein.",
-    "reply": "Holzbretter jetzt über die ganze Sitztiefe (5 Bretter von vorn bis zur Hinterkante) zwischen den massiven Betonendstücken; der hintere Betonstreifen ist weg.",
+    "text": "Unter dem holz ist noch etwas Luft.",
+    "reply": "Holz-Oberkante bleibt bündig mit dem Beton, darunter jetzt eine 2-cm-Schattenfuge – die Bretter schweben über dem Betonbalken.",
+    "baked": true
+  },
+  {
+    "id": "amv8jcns3",
+    "status": "erledigt",
+    "created": "2026-10-14 22:01",
+    "target": "Props_Steinbaenke/Steinbank_02",
+    "object": "Props_Steinbaenke",
+    "part": "Props_Steinbaenke/Steinbank_02",
+    "source": null,
+    "material": "Concrete",
+    "side": "West",
+    "pos": [
+      13.2,
+      0.252,
+      13.783
+    ],
+    "normal": [
+      -1,
+      0,
+      0
+    ],
+    "scriptPos": [
+      13.2,
+      -13.783,
+      0.252
+    ],
+    "view": [
+      5.81,
+      4.344,
+      9.632
+    ],
+    "shot": {
+      "file": "annotations/amv8jcns3.jpg",
+      "x": 0.411,
+      "y": 0.438
+    },
+    "text": "Es soll insgesamt nur eine Bank mit insgesamt 5 Füßen über die volle breite geben.",
+    "reply": "Die zwei Bänke sind jetzt eine durchgehende Bank (y −19,5 bis −6,0) mit 5 gleichmäßig verteilten Füßen; Steinbank_02 entfällt.",
     "baked": true
   }
 ]
