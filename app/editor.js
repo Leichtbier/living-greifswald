@@ -3,11 +3,12 @@
 // Wird erst beim Einschalten geladen und kostet im normalen Spiel nichts.
 import * as THREE from 'three';
 import { TransformControls } from 'three/addons/controls/TransformControls.js';
+import { createAnnotations } from './annotations.js';
 
 const SAVE_URL = '../api/edits';
 
-export function createEditor({ scene, camera, renderer, parts, panel }) {
-  let active = false, sel = null;
+export function createEditor({ scene, camera, renderer, parts, panel, world, snapshot }) {
+  let active = false, sel = null, notes = null;
   const handle = new THREE.Object3D();
   scene.add(handle);
   const controls = new TransformControls(camera, renderer.domElement);
@@ -41,6 +42,7 @@ export function createEditor({ scene, camera, renderer, parts, panel }) {
       <div class="row"><kbd>T</kbd> verschieben${controls.mode === 'translate' ? ' ✓' : ''} · <kbd>R</kbd> drehen${controls.mode === 'rotate' ? ' ✓' : ''} · <kbd>V</kbd> Höhe${height ? ' ✓' : ''}</div>
       <div class="row"><kbd>Shift</kbd> Raster (10 cm / 15°) · <kbd>+</kbd><kbd>-</kbd> / <kbd>Alt</kbd>+Rad Größe</div>
       <div class="row"><kbd>Strg</kbd>+<kbd>D</kbd> kopieren · <kbd>Strg</kbd>+<kbd>C</kbd>/<kbd>V</kbd> an der Maus einfügen · <kbd>Entf</kbd> löschen</div>
+      <div class="row"><kbd>Alt</kbd>+Klick – Anmerkung für Claude${notes?.openCount ? ` (${notes.openCount} offen)` : ''}</div>
       <div class="row"><kbd>Pos1</kbd> Lage zurücksetzen · <kbd>Strg</kbd>+<kbd>Z</kbd> rückgängig · <kbd>Strg</kbd>+<kbd>S</kbd> herunterladen</div>
       <div class="status${statusBad ? ' bad' : ''}">${esc(status || `${n} Teil${n === 1 ? '' : 'e'} geändert`)}${parts.pending() ? ' · noch nicht eingebacken' : ''}</div>`;
   }
@@ -269,6 +271,8 @@ export function createEditor({ scene, camera, renderer, parts, panel }) {
   });
 
   setMode('translate');
+  createAnnotations({ scene, camera, renderer, world, parts, snapshot, isActive: () => active, setStatus })
+    .then(n => { notes = n; n.setVisible(active); render(); });
 
   return {
     get active() { return active; },
@@ -278,6 +282,7 @@ export function createEditor({ scene, camera, renderer, parts, panel }) {
       controls.enabled = on;
       panel.hidden = !on;
       if (!on) controls.setTranslationSnap(null);
+      notes?.setVisible(on);
       select(on ? sel : null);
     },
     select,

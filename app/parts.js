@@ -238,6 +238,7 @@ export function createParts(root, boxes) {
     },
     worldPivot: p => p.pivot.clone().applyMatrix4(net(p)),
     toWorld: (p, v) => v.applyMatrix4(net(p)), // Punkt der Originalszene -> aktuelle Lage des Teils
+    toOriginal: (p, v) => v.applyMatrix4(net(p).invert()), // aktuelle Lage -> Originalszene (Skript)
     worldRotY: p => rotY(p) * DEG,
     worldScale: scaleOf,
     // Teil so platzieren, dass sein Drehpunkt bei pos liegt, insgesamt um rot (rad) gedreht und um scale skaliert

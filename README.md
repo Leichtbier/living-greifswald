@@ -28,6 +28,8 @@ Kübel, Mülleimer, Poller und die Skulpturen auswählen, verschieben, drehen, s
   `Shift` rastet ein (10 cm / 15°). `+`/`-` (10 %) oder `Alt`+Mausrad (fein) ändern die Größe.
 - `Strg+D` legt eine Kopie daneben, `Strg+C` und dann `Strg+V` fügt eine Kopie an der Mausposition ein.
 - `Entf` löscht, `Pos1` setzt Lage, Drehung und Größe zurück, `Strg+Z` macht rückgängig.
+- `Alt`+Klick auf eine beliebige Fläche setzt eine **Anmerkung für Claude** (Text, Stelle, Screenshot) → `model/annotations.json`.
+  Beim nächsten Einbacken setzt Claude offene Anmerkungen um und markiert sie grün mit einer Antwort (Klick auf den Punkt).
 - Jede Änderung speichert `serve.py` sofort in `model/edits.json`. Ohne lokalen Server (z. B. GitHub Pages) lädt `Strg+S` die Datei herunter.
 - Die App wendet `edits.json` beim Laden an, auch wenn noch nicht neu gebaut wurde. Dauerhaft in die Modelle
   (inkl. Kollidern) kommt alles mit dem nächsten Blender-Build, siehe `model/README.md`.

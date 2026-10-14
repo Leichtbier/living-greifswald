@@ -204,10 +204,25 @@ addEventListener('keyup', e => keys.delete(e.code));
 addEventListener('blur', () => keys.clear());
 const toggleHelp = () => document.getElementById('hud').classList.toggle('hidden');
 
+// Bild der aktuellen Ansicht (JPEG) mit Ring um die Stelle x/y (0..1) - fuer Anmerkungen im Bearbeiten-Modus
+function snapshot(x, y) {
+  composer.render();
+  const c = document.createElement('canvas');
+  c.width = renderer.domElement.width; c.height = renderer.domElement.height;
+  const g = c.getContext('2d');
+  g.drawImage(renderer.domElement, 0, 0);
+  const r = Math.max(14, c.height * 0.025);
+  for (const [color, w] of [['#fff', 7], ['#e01b24', 3.5]]) {
+    g.strokeStyle = color; g.lineWidth = w;
+    g.beginPath(); g.arc(x * c.width, y * c.height, r, 0, Math.PI * 2); g.stroke();
+  }
+  return c.toDataURL('image/jpeg', 0.85);
+}
+
 // Bearbeiten-Modus (B, ?edit): wird erst beim ersten Einschalten geladen
 let editor = null;
 async function toggleEditor() {
-  editor ??= import('./editor.js').then(m => m.createEditor({ scene, camera, renderer, parts, panel: document.getElementById('editPanel') }));
+  editor ??= import('./editor.js').then(m => m.createEditor({ scene, camera, renderer, parts, panel: document.getElementById('editPanel'), world: world.scene, snapshot }));
   (await editor).toggle();
 }
 

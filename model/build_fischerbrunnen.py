@@ -1579,3 +1579,9 @@ print("PARTS", len(PARTS) - 1, "EDITS", len(EDITS))
 unknown = sorted(k for k in set(EDITS) - set(PATH_ID) if not (EDITS[k].get("copyOf") and EDITS[k].get("deleted")))
 if unknown:
     print("WARNUNG: edits.json nennt Teile, die es nicht (mehr) gibt:", ", ".join(unknown))
+NOTES_FILE = os.path.join(HERE, "annotations.json")
+notes = [a for a in json.load(open(NOTES_FILE, encoding="utf-8")) if a.get("status") != "erledigt"] if os.path.exists(NOTES_FILE) else []
+if notes:  # Anmerkungen aus dem Bearbeiten-Modus, die noch umgesetzt werden muessen (siehe CLAUDE.md)
+    print(f"OFFENE ANMERKUNGEN ({len(notes)}) in model/annotations.json:")
+    for a in notes:
+        print(f"  {a['id']}  {a.get('target')}  [{a.get('material')}, {a.get('side')}, Skript {a.get('scriptPos')}]: {a['text']}")
