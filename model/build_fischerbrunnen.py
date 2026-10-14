@@ -1172,32 +1172,33 @@ def sandwich_board(m, x, y, rz):
 
 @as_part("Steinbank")
 def stone_bench(m, x0, x1, y0, y1, h=0.45):
-    """Lange Bank wie am Rathaus (Foto screenshots/bank.png): schmale Betonfuesse mit Leuchten zur Innenseite
-    (unter die Sitzflaeche), dicke Betonplatte, die vorn und hinten uebersteht, Holzbeplankung in die Platte
-    eingelassen (Betonrand ringsum). Laengs in y, Vorderseite bei x0."""
+    """Lange Bank wie am Rathaus (Foto screenshots/bank.png, Kanten markiert): dicker Betonbalken ueber die ganze Laenge
+    (dicker als die Fuesse hoch sind), darunter kurze niedrige Fuesse (Endfuesse buendig mit Stirn- und Vorderseite)
+    mit Leuchten zur Innenseite; Holzbretter in einem Falz an der vorderen Oberkante zwischen den massiven Endstuecken.
+    Laengs in y, Vorderseite bei x0."""
     small_col((x0 + x1) / 2, (y0 + y1) / 2, (x1 - x0) / 2, (y1 - y0) / 2, h)
-    seat, wood, rim, inset = h - 0.16, 0.03, 0.05, 0.10  # Unterkante Platte, Lattenstaerke, Betonrand, Fuss-Einzug
-    fx0, fx1 = x0 + inset, x1 - inset
-    feet = (y0 + 0.45, (y0 + y1) / 2, y1 - 0.45)
+    foot_h, foot_l = 0.17, 0.5      # Fusshoehe = Unterkante Balken, Fusslaenge
+    falz_w, wood = 0.22, 0.035      # Falzbreite von vorn, Brettstaerke
+    feet = (y0 + foot_l / 2, (y0 + y1) / 2, y1 - foot_l / 2)
     for k, c in enumerate(feet):
-        m.box((fx0, c - 0.25, 0), (fx1, c + 0.25, seat), "Concrete")
-        # Leuchten auf den Seitenflaechen, die unter die Sitzflaeche zeigen (Endfuesse: nur innen, Mitte: beide)
-        for s in ((1,) if k == 0 else (-1,) if k == len(feet) - 1 else (-1, 1)):
-            yf = c + s * 0.25
-            ya, yb = sorted((yf, yf + s * 0.02))
-            xm = (fx0 + fx1) / 2
-            m.box((xm - 0.10, ya, 0.08), (xm + 0.10, yb, 0.14), "Bench_Glow")
-    # Platte mit Vertiefung fuer die Beplankung
-    m.box((x0, y0, seat), (x1, y1, h - wood), "Concrete")
-    m.box((x0, y0, h - wood), (x0 + rim, y1, h), "Concrete")
-    m.box((x1 - rim, y0, h - wood), (x1, y1, h), "Concrete")
-    m.box((x0 + rim, y0, h - wood), (x1 - rim, y0 + rim, h), "Concrete")
-    m.box((x0 + rim, y1 - rim, h - wood), (x1 - rim, y1, h), "Concrete")
-    n, gap = 4, 0.015
-    w = (x1 - x0 - 2 * rim - (n - 1) * gap) / n
+        m.box((x0, c - foot_l / 2, 0), (x1, c + foot_l / 2, foot_h), "Concrete")
+        # Leuchten auf den Seitenflaechen, die unter den Balken zeigen (Endfuesse: nur innen, Mitte: beide)
+        for sgn in ((1,) if k == 0 else (-1,) if k == len(feet) - 1 else (-1, 1)):
+            yf = c + sgn * foot_l / 2
+            ya, yb = sorted((yf, yf + sgn * 0.02))
+            xm = (x0 + x1) / 2
+            m.box((xm - 0.10, ya, 0.05), (xm + 0.10, yb, 0.11), "Bench_Glow")
+    # Balken; oben vorn ein Falz zwischen den Endstuecken, darin die Bretter
+    ya, yb = y0 + foot_l, y1 - foot_l
+    m.box((x0, y0, foot_h), (x1, y1, h - wood), "Concrete")
+    m.box((x0 + falz_w, y0, h - wood), (x1, y1, h), "Concrete")
+    m.box((x0, y0, h - wood), (x0 + falz_w, ya, h), "Concrete")
+    m.box((x0, yb, h - wood), (x0 + falz_w, y1, h), "Concrete")
+    n, gap = 2, 0.01
+    w = (falz_w - (n - 1) * gap) / n
     for i in range(n):
-        xa = x0 + rim + i * (w + gap)
-        m.box((xa, y0 + rim, h - wood), (xa + w, y1 - rim, h - 0.004), "Wood_Light")
+        xa = x0 + i * (w + gap)
+        m.box((xa, ya + 0.005, h - wood), (xa + w, yb - 0.005, h - 0.004), "Wood_Light")
 
 
 @as_part("Muelleimer")
