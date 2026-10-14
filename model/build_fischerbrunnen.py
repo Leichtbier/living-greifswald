@@ -701,7 +701,9 @@ def gable_windows(mb, face, plane, uc, half, eave, roof_h, rows, frame, glass=No
 def house(name, x0, x1, y0, y1, eave, roof="gable_x", roof_h=6.0, wall="Wall_Cream", roofmat="Roof_Terracotta",
           floors=3, faces="NSEW", shop=(), awning=None, gables=None, frame="Frame_Cream", cornice="Trim_White",
           dormers=(), doors=None, ivy_faces=(), win_w=1.15, win_h=1.65, spacing=2.9, arch_windows=False,
-          gable_rows=3, gable_glass=None, glass=None, extra=None, plinth=True, shutters=None, door_pots=True):
+          gable_rows=3, gable_glass=None, glass=None, extra=None, plinth=True, shutters=None, door_pots=True,
+          face_rows=None):
+    """face_rows: {Seite: [(z0, breite, hoehe, [u, ...]), ...]} ersetzt Fenster und Tueren dieser Seite durch eigene Reihen."""
     body, det = MB(), MB()
     gables = gables or {}
     doors = doors or {}
@@ -743,15 +745,23 @@ def house(name, x0, x1, y0, y1, eave, roof="gable_x", roof_h=6.0, wall="Wall_Cre
         if fc in shop:
             shopfront(det, fc, plane, a0 + 0.4, a1 - 0.4, gh, awning=awning)
         dlist = doors.get(fc, [])
+        custom = (face_rows or {}).get(fc)
+        tgt = MB() if custom else det  # eigene Reihen: Standardbelegung nur durchrechnen (gleiche Zufallsfolge)
         for z, lvl in levels:
             if lvl == 0 and fc in shop:
                 continue
             for u in us:
                 if lvl == 0 and any(abs(u - d) < 1.3 for d in dlist):
                     continue
-                window(det, fc, plane, u, z, win_w, win_h, frame, glass=glass, arch=arch_windows, shutters=shutters)
+                window(tgt, fc, plane, u, z, win_w, win_h, frame, glass=glass, arch=arch_windows, shutters=shutters)
         for d in dlist:
-            door(det, fc, plane, d, pots=door_pots)
+            door(tgt, fc, plane, d, pots=door_pots)
+        if custom:
+            state = random.getstate()
+            for z0, w, h, row in custom:
+                for u in row:
+                    window(det, fc, plane, u, z0, w, h, frame, glass=glass, arch=arch_windows, shutters=shutters)
+            random.setstate(state)
         # Giebel
         style = gables.get(fc)
         is_gable_face = (roof == "gable_x" and fc in "WE") or (roof == "gable_y" and fc in "SN")
@@ -1407,7 +1417,10 @@ def rathaus():
 
     house("B_E2_Rathaus", x0, x1, y0, y1, eave, "gable_x", rh, "Wall_Rathaus_Red", "Roof_TerracottaDark", floors=3,
           faces="WN", gables={'W': 'volute'}, frame="Frame_Grey", cornice="Trim_White", win_w=1.5, win_h=2.0,
-          spacing=3.3, gable_rows=4, doors={'W': [-8.5]}, door_pots=False, extra=extra)
+          spacing=3.3, gable_rows=4, doors={'W': [-8.5]}, door_pots=False, extra=extra,
+          # Westfassade unter dem Giebel: nur zwei Geschosse, groessere Fenster; unten 4 Fenster, rechts (Sueden) der Torbogen
+          face_rows={'W': [(0.9, 1.8, 2.3, [-6.4, -10.47, -14.53, -18.6]),
+                           (6.8, 1.8, 2.8, [-6.0 - i * 3.8 for i in range(6)])]})
 
 
 def keimblatt():

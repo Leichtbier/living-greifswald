@@ -150,5 +150,119 @@
     },
     "text": "Alle Stühle stehen ferkehrt herum, nicht nur dieser.",
     "reply": "Behoben für alle Cafétische: die Stühle waren um 180° verdreht, die Lehne zeigt jetzt vom Tisch weg."
+  },
+  {
+    "id": "amv8hhcd0",
+    "status": "erledigt",
+    "created": "2026-10-14 21:09",
+    "target": "B_E2_Rathaus",
+    "object": "B_E2_Rathaus",
+    "part": null,
+    "source": null,
+    "material": "Glass_Mint",
+    "side": "West",
+    "pos": [
+      14.11,
+      9.493,
+      12.573
+    ],
+    "normal": [
+      -1,
+      0,
+      0
+    ],
+    "scriptPos": [
+      14.11,
+      -12.573,
+      9.493
+    ],
+    "view": [
+      -15.431,
+      17.419,
+      -8.943
+    ],
+    "shot": {
+      "file": "annotations/amv8hhcd0.jpg",
+      "x": 0.485,
+      "y": 0.122
+    },
+    "text": "In dieser reibe bitte nur insgesamt sechs fenster",
+    "reply": "Westfassade hat unter dem Giebel jetzt nur zwei Geschosse; die obere Reihe hat 6 größere Fenster (1,8 × 2,8 m), gleichmäßig verteilt."
+  },
+  {
+    "id": "amv8hht3f",
+    "status": "erledigt",
+    "created": "2026-10-14 21:09",
+    "target": "B_E2_Rathaus",
+    "object": "B_E2_Rathaus",
+    "part": null,
+    "source": null,
+    "material": "Wood_Door",
+    "side": "West",
+    "pos": [
+      14.11,
+      2.219,
+      8.547
+    ],
+    "normal": [
+      -1,
+      0,
+      0
+    ],
+    "scriptPos": [
+      14.11,
+      -8.547,
+      2.219
+    ],
+    "view": [
+      -4.282,
+      14.442,
+      1.983
+    ],
+    "shot": {
+      "file": "annotations/amv8hht3f.jpg",
+      "x": 0.378,
+      "y": 0.319
+    },
+    "text": "Entferne bitte diese Tür",
+    "reply": "Tür entfernt (samt Stufe)."
+  },
+  {
+    "id": "amv8hi9o9",
+    "status": "erledigt",
+    "created": "2026-10-14 21:09",
+    "target": "B_E2_Rathaus",
+    "object": "B_E2_Rathaus",
+    "part": null,
+    "source": null,
+    "material": "Glass_Mint",
+    "side": "West",
+    "pos": [
+      14.11,
+      2.055,
+      12.332
+    ],
+    "normal": [
+      -1,
+      0,
+      0
+    ],
+    "scriptPos": [
+      14.11,
+      -12.332,
+      2.055
+    ],
+    "view": [
+      -5.244,
+      14.989,
+      5.346
+    ],
+    "shot": {
+      "file": "annotations/amv8hi9o9.jpg",
+      "x": 0.529,
+      "y": 0.263
+    },
+    "text": "In dieser Reihe sind insgesamt nur vier Fenster und die Tür ganz rechts. Mache alle Fenster der ersten und der neuen zweiten Reihe etwas größer.",
+    "reply": "Erdgeschoss: 4 größere Fenster (1,8 × 2,3 m), rechts der Torbogen; die mittlere Fensterreihe ist weggefallen (nur zwei Geschosse, wie besprochen)."
   }
 ]
