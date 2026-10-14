@@ -7,12 +7,15 @@ EDITS = os.path.join(ROOT, 'model', 'edits.json')
 
 
 def valid_edits(d):
-    """{"Pfad/Teil": {"offset": [x, y, z], "rotY": grad}, ...} (beide Felder optional)."""
+    """{"Pfad/Teil": {"copyOf": pfad, "offset": [x, y, z], "rotY": grad, "scale": faktor, "deleted": true}, ...} (alles optional)."""
     num = lambda v: isinstance(v, numbers.Real) and not isinstance(v, bool) and abs(v) < 1e4
     return isinstance(d, dict) and all(
-        isinstance(k, str) and len(k) < 200 and isinstance(v, dict) and set(v) <= {'offset', 'rotY'}
+        isinstance(k, str) and len(k) < 200 and isinstance(v, dict) and set(v) <= {'copyOf', 'offset', 'rotY', 'scale', 'deleted'}
         and (('offset' not in v) or (isinstance(v['offset'], list) and len(v['offset']) == 3 and all(map(num, v['offset']))))
         and (('rotY' not in v) or num(v['rotY']))
+        and (('scale' not in v) or (num(v['scale']) and v['scale'] > 0))
+        and (('deleted' not in v) or v['deleted'] is True)
+        and (('copyOf' not in v) or (isinstance(v['copyOf'], str) and len(v['copyOf']) < 200))
         for k, v in d.items())
 
 

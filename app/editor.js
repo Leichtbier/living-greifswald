@@ -30,7 +30,7 @@ export function createEditor({ scene, camera, renderer, parts, panel }) {
   const esc = s => s.replace(/[&<>]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;' })[c]);
   function render() {
     const e = sel?.edit;
-    const fmt = e ? `${(e.offset ?? [0, 0, 0]).map(v => v.toFixed(2)).join(' / ')} m · ${(e.rotY ?? 0).toFixed(1)}°` : 'unverändert';
+    const fmt = (sel?.copyOf ? 'Kopie · ' : '') + (e ? `${(e.offset ?? [0, 0, 0]).map(v => v.toFixed(2)).join(' / ')} m · ${(e.rotY ?? 0).toFixed(1)}° · ×${(e.scale ?? 1).toFixed(2)}` : 'unverändert');
     const n = Object.keys(parts.toJSON()).length;
     panel.innerHTML = `
       <h2>✏️ Bearbeiten <small>(B beendet)</small></h2>
@@ -39,8 +39,9 @@ export function createEditor({ scene, camera, renderer, parts, panel }) {
       <div class="row">Klick – auswählen, nochmal – eine Ebene tiefer, <kbd>Esc</kbd> – höher, <kbd>Tab</kbd> – nächstes daneben</div>
       <div class="row">Ausgewähltes ziehen – über den Boden schieben</div>
       <div class="row"><kbd>T</kbd> verschieben${controls.mode === 'translate' ? ' ✓' : ''} · <kbd>R</kbd> drehen${controls.mode === 'rotate' ? ' ✓' : ''} · <kbd>V</kbd> Höhe${height ? ' ✓' : ''}</div>
-      <div class="row"><kbd>Shift</kbd> Raster (10 cm / 15°)</div>
-      <div class="row"><kbd>Entf</kbd> zurücksetzen · <kbd>Strg</kbd>+<kbd>Z</kbd> rückgängig · <kbd>Strg</kbd>+<kbd>S</kbd> herunterladen</div>
+      <div class="row"><kbd>Shift</kbd> Raster (10 cm / 15°) · <kbd>+</kbd><kbd>-</kbd> / <kbd>Alt</kbd>+Rad Größe</div>
+      <div class="row"><kbd>Strg</kbd>+<kbd>D</kbd> kopieren · <kbd>Strg</kbd>+<kbd>C</kbd>/<kbd>V</kbd> an der Maus einfügen · <kbd>Entf</kbd> löschen</div>
+      <div class="row"><kbd>Pos1</kbd> Lage zurücksetzen · <kbd>Strg</kbd>+<kbd>Z</kbd> rückgängig · <kbd>Strg</kbd>+<kbd>S</kbd> herunterladen</div>
       <div class="status${statusBad ? ' bad' : ''}">${esc(status || `${n} Teil${n === 1 ? '' : 'e'} geändert`)}${parts.pending() ? ' · noch nicht eingebacken' : ''}</div>`;
   }
   const setStatus = (s, bad = false) => { status = s; statusBad = bad; render(); };
@@ -71,10 +72,15 @@ export function createEditor({ scene, camera, renderer, parts, panel }) {
   // ---------------------------------------------------------------- Speichern & Rueckgaengig
   const undo = [];
   let saveTimer = 0;
-  function changed(p, before) {
+  function changed(p, before) { // before: Stand vor der Aenderung (Kopie: {deleted: true} = gab es noch nicht)
     undo.push({ p, edit: before });
     if (undo.length > 200) undo.shift();
     scheduleSave();
+  }
+  function edit(p, e) { // Aenderung mit Rueckgaengig und Speichern
+    const b = p.edit;
+    parts.setEdit(p, e);
+    if (JSON.stringify(b) !== JSON.stringify(p.edit)) changed(p, b);
   }
   function scheduleSave() {
     clearTimeout(saveTimer);
@@ -140,6 +146,8 @@ export function createEditor({ scene, camera, renderer, parts, panel }) {
       canvas.setPointerCapture(e.pointerId);
     }
   });
+  let mouse = null; // letzte Mausposition (Einfuegen an der Maus)
+  canvas.addEventListener('pointermove', e => { mouse = { clientX: e.clientX, clientY: e.clientY }; });
   canvas.addEventListener('pointermove', e => {
     if (!drag || (!drag.moved && Math.hypot(e.clientX - down.x, e.clientY - down.y) < 5)) return;
     const pt = groundAt(e, drag.y);
@@ -181,7 +189,7 @@ export function createEditor({ scene, camera, renderer, parts, panel }) {
       const u = undo.pop();
       if (!u) return;
       parts.setEdit(u.p, u.edit);
-      select(u.p);
+      select(parts.isDeleted(u.p) ? u.p.parent : u.p);
       scheduleSave();
       return;
     }
@@ -193,13 +201,67 @@ export function createEditor({ scene, camera, renderer, parts, panel }) {
     if (e.key === 'Tab' && sel?.parent) { // naechstes Teil derselben Ebene (z.B. Tisch unter dem Schirm)
       e.preventDefault();
       const sib = sel.parent.children, i = sib.indexOf(sel);
-      select(sib[(i + (e.shiftKey ? sib.length - 1 : 1)) % sib.length]);
+      const live = sib.filter(q => q === sel || !parts.isDeleted(q));
+      const j = live.indexOf(sel);
+      select(live[(j + (e.shiftKey ? live.length - 1 : 1)) % live.length]);
     }
-    if ((e.key === 'Delete' || e.key === 'Backspace') && sel?.edit) {
-      const b = sel.edit;
-      parts.setEdit(sel, null);
-      changed(sel, b);
-      select(sel);
+    if (!sel) return;
+    if (e.key === 'Delete' || e.key === 'Backspace') { // loeschen (Kopien verschwinden ganz aus edits.json)
+      e.preventDefault();
+      const p = sel;
+      edit(p, { ...p.edit, deleted: true });
+      select(p.parent);
+    }
+    if (e.key === 'Home') { edit(sel, null); select(sel); } // Lage/Drehung/Groesse zuruecksetzen
+    if (e.key === '+' || e.key === '-') { e.preventDefault(); scaleBy(e.key === '+' ? 1.1 : 1 / 1.1); }
+  });
+  // Groesse: +/- in 10-%-Schritten, Alt+Mausrad fein
+  function scaleBy(f) {
+    const b = sel.edit;
+    parts.setWorld(sel, parts.worldPivot(sel), parts.worldRotY(sel), parts.worldScale(sel) * f);
+    if (JSON.stringify(b) !== JSON.stringify(sel.edit)) changed(sel, b);
+    syncHandle();
+    render();
+  }
+  let wheelBefore = null, wheelTimer = 0;
+  addEventListener('wheel', e => {
+    if (!active || !sel || !e.altKey) return;
+    e.preventDefault();
+    e.stopImmediatePropagation(); // keine Kamera-Zoom
+    wheelBefore ??= { p: sel, edit: sel.edit };
+    parts.setWorld(sel, parts.worldPivot(sel), parts.worldRotY(sel), parts.worldScale(sel) * (e.deltaY < 0 ? 1.02 : 1 / 1.02));
+    syncHandle();
+    render();
+    clearTimeout(wheelTimer);
+    wheelTimer = setTimeout(() => { // ein Rueckgaengig-Schritt pro Drehbewegung
+      const w = wheelBefore;
+      wheelBefore = null;
+      if (JSON.stringify(w.edit) !== JSON.stringify(w.p.edit)) changed(w.p, w.edit);
+    }, 400);
+  }, { capture: true, passive: false });
+
+  // Kopieren: Strg+D legt die Kopie daneben, Strg+C/Strg+V fuegt an der Mausposition ein
+  let clip = null;
+  function copyTo(src, at) {
+    const top = parts.duplicate(src);
+    if (!top) return setStatus('Kopieren nicht möglich', true);
+    if (at) parts.setWorld(top, at, parts.worldRotY(src), parts.worldScale(src));
+    changed(top, { deleted: true });
+    select(top);
+  }
+  addEventListener('keydown', e => {
+    if (!active || !(e.ctrlKey || e.metaKey)) return;
+    const key = e.key.toLowerCase();
+    if (key === 'd' && sel) {
+      e.preventDefault();
+      const b = parts.bounds(sel);
+      copyTo(sel, parts.worldPivot(sel).add(new THREE.Vector3(b.max.x - b.min.x + 0.3, 0, 0)));
+    }
+    if (key === 'c' && sel) { clip = sel; setStatus(`${sel.name} kopiert – Strg+V fügt an der Maus ein`); }
+    if (key === 'v' && clip && mouse) {
+      e.preventDefault();
+      const y = parts.worldPivot(clip).y, at = groundAt(mouse, y);
+      if (at) copyTo(clip, at);
     }
   });
   addEventListener('keyup', e => {

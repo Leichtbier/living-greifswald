@@ -21,11 +21,13 @@ N = Tag/Abend, G = einer Möwe folgen, H = Hilfe, B = Bearbeiten-Modus (siehe un
 
 ## Umgebung bearbeiten (B)
 Im Bearbeiten-Modus (Taste `B` oder `?edit`) lassen sich Tische, Stühle, Schirme, Bänke, Laternen, Fahrräder, Autos,
-Kübel, Mülleimer, Poller und die Skulpturen auswählen, verschieben und drehen:
+Kübel, Mülleimer, Poller und die Skulpturen auswählen, verschieben, drehen, skalieren, kopieren und löschen:
 - Klick wählt die oberste Ebene (z. B. Schirm mit seinen Tischen), ein weiterer Klick geht tiefer (Tisch → Stuhl),
   `Esc` eine Ebene höher, `Tab` zum nächsten Teil derselben Ebene (z. B. der Tisch unter dem Schirm).
 - Ausgewähltes Teil mit der Maus über den Boden ziehen oder das Gizmo benutzen: `T` verschieben, `R` drehen, `V` Höhe;
-  `Shift` rastet ein (10 cm / 15°). `Entf` setzt das Teil zurück, `Strg+Z` macht rückgängig.
+  `Shift` rastet ein (10 cm / 15°). `+`/`-` (10 %) oder `Alt`+Mausrad (fein) ändern die Größe.
+- `Strg+D` legt eine Kopie daneben, `Strg+C` und dann `Strg+V` fügt eine Kopie an der Mausposition ein.
+- `Entf` löscht, `Pos1` setzt Lage, Drehung und Größe zurück, `Strg+Z` macht rückgängig.
 - Jede Änderung speichert `serve.py` sofort in `model/edits.json`. Ohne lokalen Server (z. B. GitHub Pages) lädt `Strg+S` die Datei herunter.
 - Die App wendet `edits.json` beim Laden an, auch wenn noch nicht neu gebaut wurde. Dauerhaft in die Modelle
   (inkl. Kollidern) kommt alles mit dem nächsten Blender-Build, siehe `model/README.md`.

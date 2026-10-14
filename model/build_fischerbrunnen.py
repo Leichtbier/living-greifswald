@@ -169,12 +169,16 @@ mat("Collider", (1, 0, 1))
 
 # ---------------------------------------------------------------- Bauteile (Editor: app/editor.js)
 # Bewegliche Objekte (Props, Skulpturen) merken sich pro Eckpunkt ihr Bauteil. Die Teile bilden einen Baum, ihr Pfad
-# (z.B. "Cafe_Nord/Gruppe_03/Tisch_01/Stuhl_02") ist der Schluessel in model/edits.json. Dort steht pro Teil eine
-# Verschiebung und Drehung um seinen Drehpunkt (Mitte der Grundflaeche), in three.js-Koordinaten:
-#   {"offset": [x, y, z] (m, x = Ost, y = oben, z = Sued), "rotY": Grad}
+# (z.B. "Cafe_Nord/Gruppe_03/Tisch_01/Stuhl_02") ist der Schluessel in model/edits.json. Ein Eintrag (three.js-Koordinaten):
+#   {"offset": [x, y, z] (m, x = Ost, y = oben, z = Sued), "rotY": Grad, "scale": Faktor, "deleted": true}
+# Verschiebung, Drehung und (gleichmaessige) Skalierung wirken um den Drehpunkt (Mitte der Grundflaeche) und auf alle Kinder.
+# Kopien: "Cafe_Nord/Gruppe_01/Tisch_01+1": {"copyOf": "Cafe_Nord/Gruppe_01/Tisch_01", ...} - die Originalgeometrie der
+# Quelle (samt Kindern, Pfade darunter wie beim Original) wird unter dem Elternteil der Kopie dupliziert.
 # Die Aenderungen werden beim Bauen eingebacken; die Meshes bleiben zusammengefasst (gleiche Draw Calls).
-PARTS = [None]  # id -> {"path", "parent", "kind"}; id 0 = kein Teil
+PARTS = [None]  # id -> {"path", "parent", "kind", ...}; id 0 = kein Teil
+PATH_ID = {}
 PART_STACK = []
+COPY_MAPS = []  # pro Kopie: Original-ID -> Kopie-ID (fuer die Kollider)
 EDITS_FILE = os.path.join(HERE, "edits.json")
 EDITS = json.load(open(EDITS_FILE, encoding="utf-8")) if os.path.exists(EDITS_FILE) else {}
 
@@ -190,10 +194,11 @@ def part(name, root=False):
     if root:
         path = name
     else:
-        n = sum(1 for p in PARTS[1:] if p["parent"] == parent and p["kind"] == name) + 1
+        n = sum(1 for p in PARTS[1:] if p["parent"] == parent and p["kind"] == name and not p.get("copy")) + 1
         path = f"{PARTS[parent]['path']}/{name}_{n:02d}"
     PARTS.append({"path": path, "parent": parent, "kind": name})
     pid = len(PARTS) - 1
+    PATH_ID[path] = pid
     PART_STACK.append(pid)
     try:
         yield pid
@@ -227,7 +232,7 @@ def edit_matrix(path, pivot):
         return Matrix.Identity(4)
     ox, oy, oz = e.get("offset", (0, 0, 0))
     return (Matrix.Translation(pivot + Vector((ox, -oz, oy))) @ Matrix.Rotation(math.radians(e.get("rotY", 0)), 4, 'Z')
-            @ Matrix.Translation(-pivot))
+            @ Matrix.Scale(e.get("scale", 1), 4) @ Matrix.Translation(-pivot))
 
 
 def chain(pid):
@@ -238,25 +243,74 @@ def chain(pid):
     return out[::-1]
 
 
-def bake_parts(me, vp):
-    """Drehpunkte bestimmen, edits.json auf die Eckpunkte anwenden, Teil-ID als Attribut _part ablegen.
+def deleted(pid):
+    return any(EDITS.get(PARTS[a]["path"], {}).get("deleted") for a in chain(pid))
+
+
+def expand_parts(mb):
+    """Vor dem Bauen eines Objekts mit Bauteilen: Drehpunkte bestimmen, Kopien aus edits.json anhaengen, geloeschte Teile
+    entfernen. mb.v bleibt in Originallage (fuer die UVs), verschoben wird danach in place_parts.
     Gibt die Teil-Tabelle fuer die glTF-Extras zurueck."""
-    ids = sorted({a for p in set(vp) if p for a in chain(p)})
-    lo = {i: Vector((1e9, 1e9, 1e9)) for i in ids}
-    hi = {i: Vector((-1e9, -1e9, -1e9)) for i in ids}
-    for v, p in zip(me.vertices, vp):
+    own = {a for p in set(mb.vp) if p for a in chain(p)}
+    # Drehpunkte aus der Originalgeometrie - unabhaengig von Kopien und Loeschungen, damit Aenderungen stabil bleiben
+    lo, hi = {}, {}
+    for co, p in zip(mb.v, mb.vp):
         for a in chain(p):
-            lo[a] = Vector(map(min, lo[a], v.co))
-            hi[a] = Vector(map(max, hi[a], v.co))
-    for i in ids:  # Eltern stehen vor ihren Kindern (aufsteigende IDs)
+            lo[a] = tuple(map(min, lo.get(a, co), co))
+            hi[a] = tuple(map(max, hi.get(a, co), co))
+    for i in own:
+        PARTS[i]["pivot"] = Vector(((lo[i][0] + hi[i][0]) / 2, (lo[i][1] + hi[i][1]) / 2, lo[i][2]))
+    # Kopien (flachere Pfade zuerst, damit Kopien in Kopien ihr Elternteil vorfinden)
+    n = len(mb.v)
+    for path, e in sorted(EDITS.items(), key=lambda t: t[0].count("/")):
+        src = PATH_ID.get(e.get("copyOf"))
+        if not src or src not in own or e.get("deleted"):
+            continue
+        parent_path = path.rpartition("/")[0]
+        parent = PATH_ID.get(parent_path, 0)
+        if PARTS[src].get("copy") or path in PATH_ID or (parent_path and parent not in own):
+            print("WARNUNG: Kopie uebersprungen:", path)
+            continue
+        m = {}
+        for i in sorted(own):
+            if not PARTS[i].get("copy") and src in chain(i):
+                m[i] = len(PARTS)
+                PARTS.append({"path": path + PARTS[i]["path"][len(PARTS[src]["path"]):], "kind": PARTS[i]["kind"], "copy": True,
+                              "parent": parent if i == src else m[PARTS[i]["parent"]], "pivot": PARTS[i]["pivot"]})
+                PATH_ID[PARTS[-1]["path"]] = m[i]
+        COPY_MAPS.append(m)
+        own |= set(m.values())
+        vmap = {}
+        for k in range(n):
+            if mb.vp[k] in m:
+                vmap[k] = len(mb.v)
+                mb.v.append(mb.v[k])
+                mb.vp.append(m[mb.vp[k]])
+        for fc, mat in list(zip(mb.f, mb.m)):
+            if fc[0] in vmap:
+                mb.f.append([vmap[k] for k in fc])
+                mb.m.append(mat)
+    for i in sorted(own):  # Eltern haben kleinere IDs als ihre Kinder
         pt = PARTS[i]
-        pt["pivot"] = Vector(((lo[i].x + hi[i].x) / 2, (lo[i].y + hi[i].y) / 2, lo[i].z))
         pt["N"] = (PARTS[pt["parent"]]["N"] if pt["parent"] else Matrix.Identity(4)) @ edit_matrix(pt["path"], pt["pivot"])
+    # Loeschen: Flaechen weg, dann unbenutzte Eckpunkte entfernen
+    dead = {i for i in own if deleted(i)}
+    if dead:
+        keep = [k for k, fc in enumerate(mb.f) if mb.vp[fc[0]] not in dead]
+        mb.f, mb.m = [mb.f[k] for k in keep], [mb.m[k] for k in keep]
+        used = sorted({k for fc in mb.f for k in fc})
+        remap = {k: j for j, k in enumerate(used)}
+        mb.v, mb.vp = [mb.v[k] for k in used], [mb.vp[k] for k in used]
+        mb.f = [[remap[k] for k in fc] for fc in mb.f]
+    return [[i, PARTS[i]["parent"], PARTS[i]["path"], to_three(PARTS[i]["pivot"]), EDITS.get(PARTS[i]["path"])] for i in sorted(own)]
+
+
+def place_parts(me, vp):
+    """edits.json auf die Eckpunkte anwenden (nach den UVs: die Textur bleibt am Teil wie im Editor), Teil-ID als Attribut _part."""
     for v, p in zip(me.vertices, vp):
         if p:
             v.co = PARTS[p]["N"] @ v.co
     me.attributes.new("_part", 'FLOAT', 'POINT').data.foreach_set("value", [float(p) for p in vp])
-    return [[i, PARTS[i]["parent"], PARTS[i]["path"], to_three(PARTS[i]["pivot"]), EDITS.get(PARTS[i]["path"])] for i in ids]
 
 
 # ---------------------------------------------------------------- Mesh-Builder
@@ -312,6 +366,7 @@ class MB:
         return o
 
     def build(self, name, col, bevel=0.0, loc=(0, 0, 0)):
+        parts = expand_parts(self) if any(self.vp) else None  # Kopien/Loeschungen aus edits.json
         me = bpy.data.meshes.new(name)
         me.from_pydata(self.v, [], self.f)
         names = []
@@ -335,8 +390,8 @@ class MB:
             for li in poly.loop_indices:
                 co = me.vertices[me.loops[li].vertex_index].co + Vector(loc)
                 uv.data[li].uv = (co.dot(t) / sc, co.dot(bvec) / sc)
-        # Bauteile erst nach den UVs verschieben: die Textur bleibt am Teil wie beim Verschieben im Editor
-        parts = bake_parts(me, self.vp) if any(self.vp) else None
+        if parts:
+            place_parts(me, self.vp)
         bmx = bmesh.new()
         bmx.from_mesh(me)
         if parts:  # nur innerhalb eines Teils verschmelzen, sonst kleben Teile aneinander
@@ -784,11 +839,12 @@ def chimney(det, x, y, z0, h=1.6, m="Wall_Orange"):
 
 
 # ================================================================ BODEN
-SMALL_COLS = []
+SMALL_COLS = []  # (name, x0, x1, y0, y1, h, teil) - gebaut ganz am Ende, wenn Kopien und Loeschungen feststehen
 
 
 def small_col(x, y, hx, hy, h=1.0):
-    SMALL_COLS.append((x - hx, x + hx, y - hy, y + hy, h, current_part()))
+    n = sum(1 for c in SMALL_COLS if c[0].startswith("COL_prop"))
+    SMALL_COLS.append((f"COL_prop_{n:03d}", x - hx, x + hx, y - hy, y + hy, h, current_part()))
 
 
 def part_collider(name, x0, x1, y0, y1, h, pid):
@@ -807,8 +863,11 @@ def part_collider(name, x0, x1, y0, y1, h, pid):
 
 
 def build_small_colliders():
-    for i, (x0, x1, y0, y1, h, pid) in enumerate(SMALL_COLS):
-        part_collider(f"COL_prop_{i:03d}", x0, x1, y0, y1, h, pid)
+    for name, x0, x1, y0, y1, h, pid in SMALL_COLS:
+        variants = [(name, pid)] + [(f"{name}_k{j}", m[pid]) for j, m in enumerate(COPY_MAPS) if pid in m]
+        for nm, q in variants:
+            if not (q and deleted(q)):
+                part_collider(nm, x0, x1, y0, y1, h, q)
 
 
 def ground():
@@ -1209,7 +1268,7 @@ def build():
     with part("Sculpture_Fenster", root=True) as fenster:
         place(window_sculpture(), "Sculpture_Fenster", COLS["Sculptures"], wx, wy, rz=math.radians(8))
     for nm, (x, y), s, pid in [("Fenster", (wx, wy), (1.2, 2.2), fenster), ("Fischer", (fx, fy), (1.6, 1.3), fischer)]:
-        part_collider("COL_Sculpture_" + nm, x - s[0] / 2, x + s[0] / 2, y - s[1] / 2, y + s[1] / 2, 2.4, pid)
+        SMALL_COLS.append(("COL_Sculpture_" + nm, x - s[0] / 2, x + s[0] / 2, y - s[1] / 2, y + s[1] / 2, 2.4, pid))
 
     # --- Gebaeude: Westseite (Fassadenflucht x = -17.9) ---
     house("B_W1_VeroModa", -32.0, -17.6, -7.4, 10.3, 14.5, "gable_y", 7.0, "Wall_White", "Roof_Terracotta", floors=4,
@@ -1517,6 +1576,6 @@ export(os.path.join(HERE, "fischerbrunnen_colliders.glb"), ["Colliders"])
 tris = sum(sum(len(p.vertices) - 2 for p in o.data.polygons) for o in scene.objects if o.type == 'MESH' and not o.name.startswith("COL_"))
 print("TRIS", tris, "OBJECTS", len([o for o in scene.objects if o.type == 'MESH']))
 print("PARTS", len(PARTS) - 1, "EDITS", len(EDITS))
-unknown = sorted(set(EDITS) - {p["path"] for p in PARTS[1:]})
+unknown = sorted(k for k in set(EDITS) - set(PATH_ID) if not (EDITS[k].get("copyOf") and EDITS[k].get("deleted")))
 if unknown:
     print("WARNUNG: edits.json nennt Teile, die es nicht (mehr) gibt:", ", ".join(unknown))

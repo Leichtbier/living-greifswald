@@ -30,11 +30,17 @@ Kollider von Teilen tragen `part` und ihre unverschobene Box (`box`).
 
 ```json
 {
-  "Cafe_Nord/Gruppe_01": {"offset": [0.5, 0, -0.5], "rotY": 17.19}
+  "Cafe_Nord/Gruppe_01": {"offset": [0.5, 0, -0.5], "rotY": 17.19, "scale": 1.1},
+  "Cafe_Nord/Gruppe_01/Tisch_01/Stuhl_02": {"deleted": true},
+  "Cafe_Nord/Gruppe_01/Tisch_01+1": {"copyOf": "Cafe_Nord/Gruppe_01/Tisch_01", "offset": [2.1, 0, 0]}
 }
 ```
-`offset` in Metern in three.js-Achsen (x = Ost, y = oben, z = Süd), `rotY` in Grad um den Drehpunkt (Mitte der Grundfläche).
-Die Änderung eines Teils wirkt auf seine Kinder mit. Einbacken = Blender-Build neu laufen lassen (Geometrie, Kollider,
+`offset` in Metern in three.js-Achsen (x = Ost, y = oben, z = Süd), `rotY` in Grad und `scale` (gleichmäßig) um den
+Drehpunkt (Mitte der Grundfläche). Die Änderung eines Teils wirkt auf seine Kinder mit. `deleted` entfernt das Teil samt
+Kindern und Kollidern. Kopien (`Name+1`, `+2` …) duplizieren die Originalgeometrie der Quelle unter demselben Elternteil;
+ihre Kinder heißen wie beim Original (`…Tisch_01+1/Stuhl_02`) und lassen sich einzeln ändern. Eine gelöschte Kopie
+verschwindet ganz aus der Datei. Ein eingebacken gelöschtes Original lässt sich in der App nicht mehr anklicken – zum
+Wiederherstellen den Eintrag aus `edits.json` entfernen und neu bauen. Einbacken = Blender-Build neu laufen lassen (Geometrie, Kollider,
 Teil-Tabelle); `edits.json` bleibt dabei die Quelle und wird bei jedem Build wieder angewendet. Werden Teile im Skript umsortiert
 oder neu eingefügt, verschieben sich die Nummern – der Build warnt bei Pfaden, die es nicht mehr gibt.
 
