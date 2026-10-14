@@ -221,8 +221,10 @@ export function createParts(root, boxes) {
     for (const p of [...byId.values()].sort((a, b) => a.path.localeCompare(b.path))) {
       if (chain(p).some(q => q.copyOf && get(q)?.deleted)) continue;
       const e = get(p);
-      if (p.copyOf) out[p.path] = { copyOf: p.copyOf, ...(e ?? {}) };
-      else if (e) out[p.path] = e;
+      // pivot haelt den Drehpunkt fest (siehe build_fischerbrunnen.py), falls sich die Geometrie spaeter aendert
+      const pivot = p.pivot.toArray().map(v => Math.round(v * 1e4) / 1e4 + 0);
+      if (p.copyOf) out[p.path] = { copyOf: p.copyOf, ...(e ?? {}), pivot };
+      else if (e) out[p.path] = { ...e, pivot };
     }
     return out;
   }

@@ -170,7 +170,9 @@ mat("Collider", (1, 0, 1))
 # ---------------------------------------------------------------- Bauteile (Editor: app/editor.js)
 # Bewegliche Objekte (Props, Skulpturen) merken sich pro Eckpunkt ihr Bauteil. Die Teile bilden einen Baum, ihr Pfad
 # (z.B. "Cafe_Nord/Gruppe_03/Tisch_01/Stuhl_02") ist der Schluessel in model/edits.json. Ein Eintrag (three.js-Koordinaten):
-#   {"offset": [x, y, z] (m, x = Ost, y = oben, z = Sued), "rotY": Grad, "scale": Faktor, "deleted": true}
+#   {"offset": [x, y, z] (m, x = Ost, y = oben, z = Sued), "rotY": Grad, "scale": Faktor, "deleted": true, "pivot": [x, y, z]}
+# "pivot" (vom Editor mitgeschrieben) haelt den Drehpunkt fest, damit eine Aenderung an derselben Stelle bleibt, auch wenn
+# sich die Geometrie des Teils spaeter aendert (sonst waere der Drehpunkt die Mitte der neuen Geometrie).
 # Verschiebung, Drehung und (gleichmaessige) Skalierung wirken um den Drehpunkt (Mitte der Grundflaeche) und auf alle Kinder.
 # Kopien: "Cafe_Nord/Gruppe_01/Tisch_01+1": {"copyOf": "Cafe_Nord/Gruppe_01/Tisch_01", ...} - die Originalgeometrie der
 # Quelle (samt Kindern, Pfade darunter wie beim Original) wird unter dem Elternteil der Kopie dupliziert.
@@ -290,6 +292,10 @@ def expand_parts(mb):
             if fc[0] in vmap:
                 mb.f.append([vmap[k] for k in fc])
                 mb.m.append(mat)
+    for i in own:  # festgehaltener Drehpunkt aus edits.json (three.js -> Blender)
+        x, y, z = (EDITS.get(PARTS[i]["path"]) or {}).get("pivot") or (None,) * 3
+        if x is not None:
+            PARTS[i]["pivot"] = Vector((x, -z, y))
     for i in sorted(own):  # Eltern haben kleinere IDs als ihre Kinder
         pt = PARTS[i]
         pt["N"] = (PARTS[pt["parent"]]["N"] if pt["parent"] else Matrix.Identity(4)) @ edit_matrix(pt["path"], pt["pivot"])
@@ -928,7 +934,7 @@ def fishermen():
     mb = MB()
     B = "Bronze"
     z0 = 0.42
-    mb.box((-0.9, -0.7, 0.28), (0.9, 0.7, z0), B)
+    mb.box((-0.7, -0.55, 0.28), (0.65, 0.6, z0), B)  # Sockel (Bronzeplatte), knapp um die Figuren
     # stehender Fischer (blickt nach +Y), lokale Position
     o = Vector((0.25, -0.15, 0))
     for s in (-1, 1):
@@ -1285,7 +1291,7 @@ def build():
     wx, wy = P(500, 655)
     with part("Sculpture_Fenster", root=True) as fenster:
         place(window_sculpture(), "Sculpture_Fenster", COLS["Sculptures"], wx, wy, rz=math.radians(8))
-    for nm, (x, y), s, pid in [("Fenster", (wx, wy), (1.2, 2.2), fenster), ("Fischer", (fx, fy), (1.6, 1.3), fischer)]:
+    for nm, (x, y), s, pid in [("Fenster", (wx, wy), (1.2, 2.2), fenster), ("Fischer", (fx, fy), (1.35, 1.15), fischer)]:
         SMALL_COLS.append(("COL_Sculpture_" + nm, x - s[0] / 2, x + s[0] / 2, y - s[1] / 2, y + s[1] / 2, 2.4, pid))
 
     # --- Gebaeude: Westseite (Fassadenflucht x = -17.9) ---
@@ -1621,10 +1627,8 @@ for a in all_notes:
         a["baked"] = True
     kept.append(a)
 if all_notes:
-    with open(NOTES_FILE, "w", encoding="utf-8", newline="
-") as f:
-        f.write(json.dumps(kept, ensure_ascii=False, indent=2) + "
-")
+    with open(NOTES_FILE, "w", encoding="utf-8", newline="\n") as f:
+        f.write(json.dumps(kept, ensure_ascii=False, indent=2) + "\n")
 notes = [a for a in kept if a.get("status") != "erledigt"]
 if notes:  # Anmerkungen aus dem Bearbeiten-Modus, die noch umgesetzt werden muessen (siehe CLAUDE.md)
     print(f"OFFENE ANMERKUNGEN ({len(notes)}) in model/annotations.json:")
