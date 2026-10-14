@@ -1,0 +1,15 @@
+# Blender-Arbeitsdateien (enthalten absolute lokale Pfade) und erzeugte Vorschauen
+*.blend
+*.blend1
+model/previews/
+# Testausgaben
+app/tests/out/
+__pycache__/
+*.pyc
+# Referenzfotos und persoenliche Notizen gehoeren nicht ins Repo
+reference/
+.env
+.vscode/
+.idea/
+Thumbs.db
+desktop.ini

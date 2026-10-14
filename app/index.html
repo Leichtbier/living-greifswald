@@ -1,0 +1,55 @@
+<!doctype html>
+<html lang="de">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Fischmarkt Greifswald</title>
+  <style>
+    :root { --ink: #3a2c2a; --paper: #fbf1dc; --accent: #e8794a; }
+    html, body { margin: 0; height: 100%; overflow: hidden; background: #8f86ad; font-family: "Trebuchet MS", system-ui, sans-serif; }
+    canvas { display: block; }
+    #hud { position: fixed; left: 16px; top: 16px; background: color-mix(in srgb, var(--paper) 88%, transparent);
+      color: var(--ink); border: 3px solid var(--ink); border-radius: 14px; padding: 10px 14px; font-size: 14px;
+      box-shadow: 4px 4px 0 var(--ink); max-width: 260px; user-select: none; }
+    #hud h1 { font-size: 18px; margin: 0 0 6px; }
+    #hud kbd { background: #fff; border: 2px solid var(--ink); border-radius: 6px; padding: 0 5px; font-size: 12px; }
+    #hud .row { margin: 3px 0; }
+    #hud.hidden .row { display: none; }
+    #poi { position: fixed; left: 50%; bottom: 28px; transform: translateX(-50%); background: var(--paper); color: var(--ink);
+      border: 3px solid var(--ink); border-radius: 14px; padding: 8px 16px; box-shadow: 4px 4px 0 var(--ink);
+      font-size: 15px; opacity: 0; transition: opacity .3s; pointer-events: none; text-align: center; max-width: 80vw; }
+    #poi.show { opacity: 1; }
+    #loading { position: fixed; inset: 0; display: grid; place-items: center; background: #8f86ad; color: var(--paper);
+      font-size: 22px; transition: opacity .6s; }
+    #loading.done { opacity: 0; pointer-events: none; }
+    #err { position: fixed; right: 16px; bottom: 16px; max-width: 50vw; background: #fff0f0; color: #900; font: 12px monospace;
+      white-space: pre-wrap; padding: 8px; border: 2px solid #900; display: none; }
+  </style>
+  <script type="importmap">
+  { "imports": {
+      "three": "https://cdn.jsdelivr.net/npm/three@0.170.0/build/three.module.js",
+      "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.170.0/examples/jsm/"
+  } }
+  </script>
+</head>
+<body>
+  <div id="loading">Lade den Fischmarkt … <span id="pct"></span></div>
+  <div id="hud">
+    <h1>🐟 Fischmarkt Greifswald</h1>
+    <div class="row"><kbd>W</kbd><kbd>A</kbd><kbd>S</kbd><kbd>D</kbd> / Pfeile – laufen</div>
+    <div class="row"><kbd>Shift</kbd> – rennen</div>
+    <div class="row"><kbd>Q</kbd><kbd>E</kbd> / rechte Maustaste ziehen – Kamera drehen</div>
+    <div class="row">Mausrad – Zoom</div>
+    <div class="row"><kbd>N</kbd> – Tag / Abend</div>
+    <div class="row"><kbd>G</kbd> – einer Möwe folgen</div>
+    <div class="row"><kbd>H</kbd> – Hilfe ein/aus</div>
+  </div>
+  <div id="poi"></div>
+  <div id="err"></div>
+  <script>
+    window.addEventListener('error', e => { const el = document.getElementById('err'); el.style.display = 'block'; el.textContent += (e.message || e) + '\n'; });
+    window.addEventListener('unhandledrejection', e => { const el = document.getElementById('err'); el.style.display = 'block'; el.textContent += 'Promise: ' + (e.reason && (e.reason.stack || e.reason.message) || e.reason) + '\n'; });
+  </script>
+  <script type="module" src="main.js"></script>
+</body>
+</html>
