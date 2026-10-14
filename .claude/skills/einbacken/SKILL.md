@@ -49,8 +49,9 @@ erledigte Anmerkungen. Vorher das alte GLB kopieren und danach vergleichen, welc
 - Eigener Testserver auf einem freien Port (`app/serve.py <port> --no-browser`), nie 8080; danach wieder beenden.
   Vorher `model/edits.json` und `model/annotations.json` sichern, wenn ein Test speichert.
 - Sichtprüfung: die Stellen der Anmerkungen aus ihrer `view`-Kamera per Playwright fotografieren und ansehen.
-- Regression: `app/tests/playwright_sim.py --out <scratchpad> --only selftest,gullsim,touch,play` (touch ist gelegentlich
-  wackelig – bei Fehler einmal wiederholen).
+- Regression **nur, wenn sich Code in `app/` geändert hat** (oder Kollider/Wege, die Spielfigur oder Möwen betreffen):
+  `app/tests/playwright_sim.py --out <scratchpad> --only selftest,gullsim,touch,play` (touch ist gelegentlich
+  wackelig – bei Fehler einmal wiederholen). Bei reinen Modelländerungen reichen Knotenvergleich und Sichtprüfung.
 
 ## 5. Committen
 - Code (Skript, app/) und Daten/Modelle (`edits.json`, `annotations.json`, `*.glb`) in getrennten Commits.

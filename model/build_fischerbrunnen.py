@@ -1174,11 +1174,11 @@ def sandwich_board(m, x, y, rz):
 def stone_bench(m, x0, x1, y0, y1, h=0.45):
     """Lange Bank wie am Rathaus (Foto screenshots/bank.png, Kanten markiert): dicker Betonbalken ueber die ganze Laenge
     (dicker als die Fuesse hoch sind), darunter kurze niedrige Fuesse (Endfuesse buendig mit Stirn- und Vorderseite)
-    mit Leuchten zur Innenseite; Holzbretter in einem Falz an der vorderen Oberkante zwischen den massiven Endstuecken.
-    Laengs in y, Vorderseite bei x0."""
+    mit Leuchten zur Innenseite; Holzbretter ueber die ganze Sitztiefe in einer Vertiefung zwischen den massiven
+    Endstuecken. Laengs in y, Vorderseite bei x0."""
     small_col((x0 + x1) / 2, (y0 + y1) / 2, (x1 - x0) / 2, (y1 - y0) / 2, h)
     foot_h, foot_l = 0.17, 0.5      # Fusshoehe = Unterkante Balken, Fusslaenge
-    falz_w, wood = 0.22, 0.035      # Falzbreite von vorn, Brettstaerke
+    wood = 0.035                    # Brettstaerke
     feet = (y0 + foot_l / 2, (y0 + y1) / 2, y1 - foot_l / 2)
     for k, c in enumerate(feet):
         m.box((x0, c - foot_l / 2, 0), (x1, c + foot_l / 2, foot_h), "Concrete")
@@ -1188,14 +1188,13 @@ def stone_bench(m, x0, x1, y0, y1, h=0.45):
             ya, yb = sorted((yf, yf + sgn * 0.02))
             xm = (x0 + x1) / 2
             m.box((xm - 0.10, ya, 0.05), (xm + 0.10, yb, 0.11), "Bench_Glow")
-    # Balken; oben vorn ein Falz zwischen den Endstuecken, darin die Bretter
+    # Balken; oben zwischen den Endstuecken ueber die ganze Tiefe vertieft, darin die Bretter
     ya, yb = y0 + foot_l, y1 - foot_l
     m.box((x0, y0, foot_h), (x1, y1, h - wood), "Concrete")
-    m.box((x0 + falz_w, y0, h - wood), (x1, y1, h), "Concrete")
-    m.box((x0, y0, h - wood), (x0 + falz_w, ya, h), "Concrete")
-    m.box((x0, yb, h - wood), (x0 + falz_w, y1, h), "Concrete")
-    n, gap = 2, 0.01
-    w = (falz_w - (n - 1) * gap) / n
+    m.box((x0, y0, h - wood), (x1, ya, h), "Concrete")
+    m.box((x0, yb, h - wood), (x1, y1, h), "Concrete")
+    n, gap = 5, 0.01
+    w = (x1 - x0 - (n - 1) * gap) / n
     for i in range(n):
         xa = x0 + i * (w + gap)
         m.box((xa, ya + 0.005, h - wood), (xa + w, yb - 0.005, h - 0.004), "Wood_Light")
