@@ -1,18 +1,18 @@
 [
   {
-    "id": "amv8ib2kj",
+    "id": "amv8ijtqu",
     "status": "erledigt",
-    "created": "2026-10-14 21:32",
+    "created": "2026-10-14 21:39",
     "target": "Props_Steinbaenke/Steinbank_01",
     "object": "Props_Steinbaenke",
     "part": "Props_Steinbaenke/Steinbank_01",
     "source": null,
-    "material": "Granite",
+    "material": "Wood_Light",
     "side": "oben",
     "pos": [
-      13.452,
+      13.29,
       0.45,
-      6.993
+      6.087
     ],
     "normal": [
       0,
@@ -20,22 +20,100 @@
       0
     ],
     "scriptPos": [
-      13.452,
-      -6.993,
+      13.29,
+      -6.087,
       0.45
     ],
     "view": [
-      2.901,
-      8.709,
-      -0.661
+      7.642,
+      4.793,
+      0.933
     ],
     "shot": {
-      "file": "annotations/amv8ib2kj.jpg",
-      "x": 0.446,
-      "y": 0.406
+      "file": "annotations/amv8ijtqu.jpg",
+      "x": 0.331,
+      "y": 0.446
     },
-    "text": "Bitte detailiere die Bank aus (Betonfüße, Beplankung, leuchten in den Füßen) siehe dazu @bank.png",
-    "reply": "Nach screenshots/bank.png ausdetailliert (beide Steinbänke): drei Betonfüße (Enden + Mitte, leicht zurückgesetzt) mit warm leuchtender Leuchte vorn, Betonplatte, darauf vier Holzlatten als Beplankung.",
+    "text": "Die Beplankung geht nicht bis zum rand und ist in den oberen betonsockel eingelassenn",
+    "reply": "Die Latten liegen jetzt in einer Vertiefung der Betonplatte, ringsum bleibt ein 5 cm breiter Betonrand; Holz bündig mit der Oberkante.",
+    "baked": true
+  },
+  {
+    "id": "amv8ikjjm",
+    "status": "erledigt",
+    "created": "2026-10-14 21:39",
+    "target": "Props_Steinbaenke/Steinbank_01",
+    "object": "Props_Steinbaenke",
+    "part": "Props_Steinbaenke/Steinbank_01",
+    "source": null,
+    "material": "Concrete",
+    "side": "Nord",
+    "pos": [
+      13.394,
+      0.145,
+      8.75
+    ],
+    "normal": [
+      0,
+      0,
+      -1
+    ],
+    "scriptPos": [
+      13.394,
+      -8.75,
+      0.145
+    ],
+    "view": [
+      5.111,
+      4.228,
+      3.311
+    ],
+    "shot": {
+      "file": "annotations/amv8ikjjm.jpg",
+      "x": 0.593,
+      "y": 0.383
+    },
+    "text": "Die Beleuchtung soll nicht nach vorne, sonder hier nach innen zeigen.",
+    "reply": "Leuchten sitzen jetzt auf den Seitenflächen der Füße und strahlen unter die Sitzfläche (Endfüße innen, Mittelfuß zu beiden Seiten); vorn keine mehr.",
+    "baked": true
+  },
+  {
+    "id": "amv8ilp2x",
+    "status": "erledigt",
+    "created": "2026-10-14 21:40",
+    "target": "Props_Steinbaenke/Steinbank_01",
+    "object": "Props_Steinbaenke",
+    "part": "Props_Steinbaenke/Steinbank_01",
+    "source": null,
+    "material": "Concrete",
+    "side": "West",
+    "pos": [
+      13.2,
+      0.342,
+      7.249
+    ],
+    "normal": [
+      -1,
+      0,
+      0
+    ],
+    "scriptPos": [
+      13.2,
+      -7.249,
+      0.342
+    ],
+    "view": [
+      6.21,
+      5.221,
+      2.671
+    ],
+    "shot": {
+      "file": "annotations/amv8ilp2x.jpg",
+      "x": 0.473,
+      "y": 0.337
+    },
+    "text": "Die obere Betonbar muss dicker sein (dicker als die Füße)",
+    "reply": "Platte jetzt 16 cm statt 8 cm dick, die Füße sind schmaler (je 10 cm eingezogen), sodass die Platte vorn und hinten übersteht wie auf screenshots/bank.png. Falls du nur die Höhe meintest: bitte nochmal anmerken.",
     "baked": true
   }
 ]
