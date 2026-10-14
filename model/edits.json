@@ -1,4 +1,9 @@
 {
+  "Props_Stadtmobiliar/Fahrradreihe_02": {"offset": [0, 0, 0.018]},
+  "Props_Stadtmobiliar/Fahrradreihe_02/Fahrrad_01": {"offset": [-0.492, 0, 0], "rotY": 8.38},
+  "Props_Stadtmobiliar/Fahrradreihe_02/Fahrrad_02": {"offset": [0, 0, -0.565]},
+  "Props_Stadtmobiliar/Fahrradreihe_02/Fahrrad_03": {"offset": [0.601, 0, 0]},
+  "Props_Stadtmobiliar/Fahrradreihe_02/Fahrrad_05": {"offset": [-0.554, 0, 0], "rotY": -9.45},
   "Sculpture_Aaljunge": {"offset": [0.049, 0, 0], "rotY": 12.69},
   "Sculpture_Fenster": {"offset": [-0.379, 0, -0.654], "rotY": 81.46},
   "Sculpture_Fischer": {"offset": [0.555, 0, 1.811], "rotY": -10.76}
