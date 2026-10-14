@@ -1,18 +1,18 @@
 [
   {
-    "id": "amv8hwzx2",
+    "id": "amv8ib2kj",
     "status": "erledigt",
-    "created": "2026-10-14 21:21",
-    "target": "Sculpture_Fischer",
-    "object": "Sculpture_Fischer",
-    "part": "Sculpture_Fischer",
+    "created": "2026-10-14 21:32",
+    "target": "Props_Steinbaenke/Steinbank_01",
+    "object": "Props_Steinbaenke",
+    "part": "Props_Steinbaenke/Steinbank_01",
     "source": null,
-    "material": "Bronze",
+    "material": "Granite",
     "side": "oben",
     "pos": [
-      0.469,
-      0.42,
-      1.36
+      13.452,
+      0.45,
+      6.993
     ],
     "normal": [
       0,
@@ -20,22 +20,22 @@
       0
     ],
     "scriptPos": [
-      0.224,
-      0.123,
-      0.42
+      13.452,
+      -6.993,
+      0.45
     ],
     "view": [
-      -3.293,
-      12.831,
-      12.523
+      2.901,
+      8.709,
+      -0.661
     ],
     "shot": {
-      "file": "annotations/amv8hwzx2.jpg",
-      "x": 0.24,
-      "y": 0.773
+      "file": "annotations/amv8ib2kj.jpg",
+      "x": 0.446,
+      "y": 0.406
     },
-    "text": "Mache bitte den Sockel kleiner",
-    "reply": "Sockel der Fischer-Gruppe von 1,8 × 1,4 m auf 1,35 × 1,15 m verkleinert (knapp um die Figuren), Kollider angepasst. Deine Drehung/Verschiebung bleibt erhalten.",
+    "text": "Bitte detailiere die Bank aus (Betonfüße, Beplankung, leuchten in den Füßen) siehe dazu @bank.png",
+    "reply": "Nach screenshots/bank.png ausdetailliert (beide Steinbänke): drei Betonfüße (Enden + Mitte, leicht zurückgesetzt) mit warm leuchtender Leuchte vorn, Betonplatte, darauf vier Holzlatten als Beplankung.",
     "baked": true
   }
 ]
