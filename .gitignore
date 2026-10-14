@@ -15,3 +15,5 @@ Thumbs.db
 desktop.ini
 # Anmerkungen aus dem Bearbeiten-Modus: Screenshots nur lokal
 model/annotations/
+# Eigene Screenshots
+/screenshots/

@@ -62,7 +62,7 @@ export async function createAnnotations({ scene, camera, renderer, world, parts,
     isNew = fresh;
     pop.innerHTML = `
       <div class="head">💬 Anmerkung für Claude <small>${esc(a.target)}</small></div>
-      <textarea rows="4" placeholder="Was soll hier passieren? (Strg+Enter speichert, Esc schließt)">${esc(a.text)}</textarea>
+      <textarea rows="4" placeholder="Was soll hier passieren? @datei verweist auf ein Bild in screenshots/ (Strg+Enter speichert, Esc schließt)">${esc(a.text)}</textarea>
       ${a.reply ? `<div class="reply"><b>Claude:</b> ${esc(a.reply)}</div>` : ''}
       <div class="btns">
         ${fresh ? '' : `<label><input type="checkbox" ${a.status === 'erledigt' ? 'checked' : ''}> erledigt</label><button data-act="del">Löschen</button>`}
