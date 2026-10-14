@@ -1171,15 +1171,16 @@ def sandwich_board(m, x, y, rz):
 
 
 @as_part("Steinbank")
-def stone_bench(m, x0, x1, y0, y1, h=0.45):
+def stone_bench(m, x0, x1, y0, y1, h=0.45, n_feet=3):
     """Lange Bank wie am Rathaus (Foto screenshots/bank.png, Kanten markiert): dicker Betonbalken ueber die ganze Laenge
     (dicker als die Fuesse hoch sind), darunter kurze niedrige Fuesse (Endfuesse buendig mit Stirn- und Vorderseite)
     mit Leuchten zur Innenseite; Holzbretter ueber die ganze Sitztiefe in einer Vertiefung zwischen den massiven
-    Endstuecken. Laengs in y, Vorderseite bei x0."""
+    Endstuecken, Oberkante buendig mit dem Beton, darunter eine Schattenfuge (Holz schwebt). Laengs in y,
+    Vorderseite bei x0; n_feet Fuesse gleichmaessig verteilt."""
     small_col((x0 + x1) / 2, (y0 + y1) / 2, (x1 - x0) / 2, (y1 - y0) / 2, h)
     foot_h, foot_l = 0.17, 0.5      # Fusshoehe = Unterkante Balken, Fusslaenge
-    wood = 0.035                    # Brettstaerke
-    feet = (y0 + foot_l / 2, (y0 + y1) / 2, y1 - foot_l / 2)
+    wood, fuge = 0.035, 0.02        # Brettstaerke, Schattenfuge unter den Brettern
+    feet = [y0 + foot_l / 2 + k * (y1 - y0 - foot_l) / (n_feet - 1) for k in range(n_feet)]
     for k, c in enumerate(feet):
         m.box((x0, c - foot_l / 2, 0), (x1, c + foot_l / 2, foot_h), "Concrete")
         # Leuchten auf den Seitenflaechen, die unter den Balken zeigen (Endfuesse: nur innen, Mitte: beide)
@@ -1188,16 +1189,17 @@ def stone_bench(m, x0, x1, y0, y1, h=0.45):
             ya, yb = sorted((yf, yf + sgn * 0.02))
             xm = (x0 + x1) / 2
             m.box((xm - 0.10, ya, 0.05), (xm + 0.10, yb, 0.11), "Bench_Glow")
-    # Balken; oben zwischen den Endstuecken ueber die ganze Tiefe vertieft, darin die Bretter
+    # Balken; oben zwischen den Endstuecken ueber die ganze Tiefe vertieft, darin die Bretter mit Fuge darunter
     ya, yb = y0 + foot_l, y1 - foot_l
-    m.box((x0, y0, foot_h), (x1, y1, h - wood), "Concrete")
-    m.box((x0, y0, h - wood), (x1, ya, h), "Concrete")
-    m.box((x0, yb, h - wood), (x1, y1, h), "Concrete")
+    zb = h - wood - fuge
+    m.box((x0, y0, foot_h), (x1, y1, zb), "Concrete")
+    m.box((x0, y0, zb), (x1, ya, h), "Concrete")
+    m.box((x0, yb, zb), (x1, y1, h), "Concrete")
     n, gap = 5, 0.01
     w = (x1 - x0 - (n - 1) * gap) / n
     for i in range(n):
         xa = x0 + i * (w + gap)
-        m.box((xa, ya + 0.005, h - wood), (xa + w, yb - 0.005, h - 0.004), "Wood_Light")
+        m.box((xa, ya + 0.005, h - wood), (xa + w, yb - 0.005, h), "Wood_Light")
 
 
 @as_part("Muelleimer")
@@ -1585,11 +1587,10 @@ def props():
         car(m, -10.5, 33.5, math.pi / 2, "Car_Red")
         m.build("Props_Autos", COLS["Props"])
 
-    # --- Granit-Steinbaenke vor der Rathaus-Westfassade (x0 = 14.2) ---
+    # --- Granit-Steinbank vor der Rathaus-Westfassade (x0 = 14.2): eine lange Bank mit 5 Fuessen ---
     m = MB()
     with part("Props_Steinbaenke", root=True):
-        for y0, y1 in ((-12.0, -6.0), (-19.5, -13.5)):
-            stone_bench(m, 13.2, 13.75, y0, y1)
+        stone_bench(m, 13.2, 13.75, -19.5, -6.0, n_feet=5)
         m.build("Props_Steinbaenke", COLS["Props"])
 
     # --- Lichterketten ueber dem Platz ---
