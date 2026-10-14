@@ -153,7 +153,7 @@ function makeCharacter() {
 const player = makeCharacter();
 const spawn = world.scene.getObjectByName('Spawn_Player');
 player.position.set(spawn ? spawn.position.x : 0, 0, spawn ? spawn.position.z : 10);
-player.rotation.y = Math.PI; // Blick nach Norden zum Brunnen
+player.rotation.y = Math.PI / 2; // Blick nach Osten (Modell schaut bei 0 nach Sueden/+Z)
 scene.add(player);
 const blob = new THREE.Mesh(new THREE.CircleGeometry(0.45, 20), new THREE.MeshBasicMaterial({ color: 0x000000, transparent: true, opacity: 0.18, depthWrite: false }));
 blob.rotation.x = -Math.PI / 2; blob.position.y = 0.04; scene.add(blob);
