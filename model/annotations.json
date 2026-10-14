@@ -1,1 +1,41 @@
-[]
+[
+  {
+    "id": "amv8j5z3v",
+    "status": "erledigt",
+    "created": "2026-10-14 21:56",
+    "target": "Props_Steinbaenke/Steinbank_01",
+    "object": "Props_Steinbaenke",
+    "part": "Props_Steinbaenke/Steinbank_01",
+    "source": null,
+    "material": "Concrete",
+    "side": "oben",
+    "pos": [
+      13.692,
+      0.45,
+      7.732
+    ],
+    "normal": [
+      0,
+      1,
+      0
+    ],
+    "scriptPos": [
+      13.692,
+      -7.732,
+      0.45
+    ],
+    "view": [
+      8.113,
+      5.056,
+      3.248
+    ],
+    "shot": {
+      "file": "annotations/amv8j5z3v.jpg",
+      "x": 0.381,
+      "y": 0.447
+    },
+    "text": "Genau hier soll auch holz sein.",
+    "reply": "Holzbretter jetzt über die ganze Sitztiefe (5 Bretter von vorn bis zur Hinterkante) zwischen den massiven Betonendstücken; der hintere Betonstreifen ist weg.",
+    "baked": true
+  }
+]
