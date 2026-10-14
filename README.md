@@ -3,6 +3,9 @@
 Gemütliche, stilisierte three.js-Szenen aus Greifswald zum Herumlaufen in der Draufsicht.
 Erster Ort: der **Fischmarkt mit dem Fischerbrunnen**, mit frechen Silbermöwen.
 
+**Online spielen:** https://leichtbier.github.io/living-greifswald/
+(GitHub Pages, Quelle: Branch `main`, Ordner `/`; `index.html` leitet nach `app/` weiter.)
+
 ## Starten
 ```
 cd app
