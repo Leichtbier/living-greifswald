@@ -1,94 +1,18 @@
 [
   {
-    "id": "amv8h44h9",
+    "id": "amv8hwzx2",
     "status": "erledigt",
-    "created": "2026-10-14 20:58",
-    "target": "B_E2_Rathaus",
-    "object": "B_E2_Rathaus",
-    "part": null,
+    "created": "2026-10-14 21:21",
+    "target": "Sculpture_Fischer",
+    "object": "Sculpture_Fischer",
+    "part": "Sculpture_Fischer",
     "source": null,
-    "material": "Leaf_Dark",
-    "side": "Nord",
-    "pos": [
-      13.582,
-      0.855,
-      7.065
-    ],
-    "normal": [
-      -0.307,
-      0.197,
-      -0.931
-    ],
-    "scriptPos": [
-      13.582,
-      -7.065,
-      0.855
-    ],
-    "view": [
-      8.263,
-      5.328,
-      -1.38
-    ],
-    "shot": {
-      "file": "annotations/amv8h44h9.jpg",
-      "x": 0.295,
-      "y": 0.367
-    },
-    "text": "Entferne bitte die Planze",
-    "reply": "Entfernt: die beiden Blumentöpfe neben der Rathaustür (door_pots=False beim Rathaus)."
-  },
-  {
-    "id": "amv8h4rde",
-    "status": "erledigt",
-    "created": "2026-10-14 20:59",
-    "target": "B_E2_Rathaus",
-    "object": "B_E2_Rathaus",
-    "part": null,
-    "source": null,
-    "material": "Leaf_Dark",
-    "side": "West",
-    "pos": [
-      13.53,
-      0.908,
-      9.65
-    ],
-    "normal": [
-      -0.975,
-      0.118,
-      0.189
-    ],
-    "scriptPos": [
-      13.53,
-      -9.65,
-      0.908
-    ],
-    "view": [
-      4.207,
-      6.14,
-      9.062
-    ],
-    "shot": {
-      "file": "annotations/amv8h4rde.jpg",
-      "x": 0.472,
-      "y": 0.311
-    },
-    "text": "entferne auch diese Pflanze",
-    "reply": "Entfernt (gehörte zum selben Topfpaar an der Rathaustür)."
-  },
-  {
-    "id": "amv8h55sg",
-    "status": "erledigt",
-    "created": "2026-10-14 20:59",
-    "target": "B_E2_Rathaus",
-    "object": "B_E2_Rathaus",
-    "part": null,
-    "source": null,
-    "material": "Granite",
+    "material": "Bronze",
     "side": "oben",
     "pos": [
-      13.234,
-      0.45,
-      14.804
+      0.469,
+      0.42,
+      1.36
     ],
     "normal": [
       0,
@@ -96,173 +20,22 @@
       0
     ],
     "scriptPos": [
-      13.234,
-      -14.804,
-      0.45
+      0.224,
+      0.123,
+      0.42
     ],
     "view": [
-      6.054,
-      6.998,
-      9.352
+      -3.293,
+      12.831,
+      12.523
     ],
     "shot": {
-      "file": "annotations/amv8h55sg.jpg",
-      "x": 0.488,
-      "y": 0.289
+      "file": "annotations/amv8hwzx2.jpg",
+      "x": 0.24,
+      "y": 0.773
     },
-    "text": "Mach aus den Bänken objekte",
-    "reply": "Die zwei Granit-Steinbänke vor der Rathaus-Westfassade sind jetzt eigene Objekte (Props_Steinbaenke/Steinbank_01, _02) mit Kollider – verschieben, drehen, kopieren, löschen geht."
-  },
-  {
-    "id": "amv8h5ql7",
-    "status": "erledigt",
-    "created": "2026-10-14 21:00",
-    "target": "Cafe_Nord/Gruppe_04/Tisch_01/Stuhl_04",
-    "object": "Cafe_Nord",
-    "part": "Cafe_Nord/Gruppe_04/Tisch_01/Stuhl_04",
-    "source": null,
-    "material": "Chair_Dark",
-    "side": "oben",
-    "pos": [
-      5.761,
-      0.5,
-      -6.186
-    ],
-    "normal": [
-      0,
-      1,
-      0
-    ],
-    "scriptPos": [
-      5.761,
-      6.186,
-      0.5
-    ],
-    "view": [
-      9.774,
-      4.195,
-      0.636
-    ],
-    "shot": {
-      "file": "annotations/amv8h5ql7.jpg",
-      "x": 0.334,
-      "y": 0.463
-    },
-    "text": "Alle Stühle stehen ferkehrt herum, nicht nur dieser.",
-    "reply": "Behoben für alle Cafétische: die Stühle waren um 180° verdreht, die Lehne zeigt jetzt vom Tisch weg."
-  },
-  {
-    "id": "amv8hhcd0",
-    "status": "erledigt",
-    "created": "2026-10-14 21:09",
-    "target": "B_E2_Rathaus",
-    "object": "B_E2_Rathaus",
-    "part": null,
-    "source": null,
-    "material": "Glass_Mint",
-    "side": "West",
-    "pos": [
-      14.11,
-      9.493,
-      12.573
-    ],
-    "normal": [
-      -1,
-      0,
-      0
-    ],
-    "scriptPos": [
-      14.11,
-      -12.573,
-      9.493
-    ],
-    "view": [
-      -15.431,
-      17.419,
-      -8.943
-    ],
-    "shot": {
-      "file": "annotations/amv8hhcd0.jpg",
-      "x": 0.485,
-      "y": 0.122
-    },
-    "text": "In dieser reibe bitte nur insgesamt sechs fenster",
-    "reply": "Westfassade hat unter dem Giebel jetzt nur zwei Geschosse; die obere Reihe hat 6 größere Fenster (1,8 × 2,8 m), gleichmäßig verteilt."
-  },
-  {
-    "id": "amv8hht3f",
-    "status": "erledigt",
-    "created": "2026-10-14 21:09",
-    "target": "B_E2_Rathaus",
-    "object": "B_E2_Rathaus",
-    "part": null,
-    "source": null,
-    "material": "Wood_Door",
-    "side": "West",
-    "pos": [
-      14.11,
-      2.219,
-      8.547
-    ],
-    "normal": [
-      -1,
-      0,
-      0
-    ],
-    "scriptPos": [
-      14.11,
-      -8.547,
-      2.219
-    ],
-    "view": [
-      -4.282,
-      14.442,
-      1.983
-    ],
-    "shot": {
-      "file": "annotations/amv8hht3f.jpg",
-      "x": 0.378,
-      "y": 0.319
-    },
-    "text": "Entferne bitte diese Tür",
-    "reply": "Tür entfernt (samt Stufe)."
-  },
-  {
-    "id": "amv8hi9o9",
-    "status": "erledigt",
-    "created": "2026-10-14 21:09",
-    "target": "B_E2_Rathaus",
-    "object": "B_E2_Rathaus",
-    "part": null,
-    "source": null,
-    "material": "Glass_Mint",
-    "side": "West",
-    "pos": [
-      14.11,
-      2.055,
-      12.332
-    ],
-    "normal": [
-      -1,
-      0,
-      0
-    ],
-    "scriptPos": [
-      14.11,
-      -12.332,
-      2.055
-    ],
-    "view": [
-      -5.244,
-      14.989,
-      5.346
-    ],
-    "shot": {
-      "file": "annotations/amv8hi9o9.jpg",
-      "x": 0.529,
-      "y": 0.263
-    },
-    "text": "In dieser Reihe sind insgesamt nur vier Fenster und die Tür ganz rechts. Mache alle Fenster der ersten und der neuen zweiten Reihe etwas größer.",
-    "reply": "Erdgeschoss: 4 größere Fenster (1,8 × 2,3 m), rechts der Torbogen; die mittlere Fensterreihe ist weggefallen (nur zwei Geschosse, wie besprochen)."
+    "text": "Mache bitte den Sockel kleiner",
+    "reply": "Sockel der Fischer-Gruppe von 1,8 × 1,4 m auf 1,35 × 1,15 m verkleinert (knapp um die Figuren), Kollider angepasst. Deine Drehung/Verschiebung bleibt erhalten.",
+    "baked": true
   }
 ]
