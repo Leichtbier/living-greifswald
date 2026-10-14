@@ -17,12 +17,23 @@ Oder von Hand: `cd app` und `python serve.py 8080` (Python ≥ 3.7, nur Standard
 three.js wird vom CDN (jsdelivr) geladen.
 
 Steuerung: WASD/Pfeile laufen, Shift rennen, Q/E oder rechte Maustaste ziehen = Kamera drehen, Mausrad = Zoom,
-N = Tag/Abend, G = einer Möwe folgen, H = Hilfe.
+N = Tag/Abend, G = einer Möwe folgen, H = Hilfe, B = Bearbeiten-Modus (siehe unten).
+
+## Umgebung bearbeiten (B)
+Im Bearbeiten-Modus (Taste `B` oder `?edit`) lassen sich Tische, Stühle, Schirme, Bänke, Laternen, Fahrräder, Autos,
+Kübel, Mülleimer, Poller und die Skulpturen auswählen, verschieben und drehen:
+- Klick wählt die oberste Ebene (z. B. Schirm mit seinen Tischen), ein weiterer Klick geht tiefer (Tisch → Stuhl),
+  `Esc` eine Ebene höher, `Tab` zum nächsten Teil derselben Ebene (z. B. der Tisch unter dem Schirm).
+- Ausgewähltes Teil mit der Maus über den Boden ziehen oder das Gizmo benutzen: `T` verschieben, `R` drehen, `V` Höhe;
+  `Shift` rastet ein (10 cm / 15°). `Entf` setzt das Teil zurück, `Strg+Z` macht rückgängig.
+- Jede Änderung speichert `serve.py` sofort in `model/edits.json`. Ohne lokalen Server (z. B. GitHub Pages) lädt `Strg+S` die Datei herunter.
+- Die App wendet `edits.json` beim Laden an, auch wenn noch nicht neu gebaut wurde. Dauerhaft in die Modelle
+  (inkl. Kollidern) kommt alles mit dem nächsten Blender-Build, siehe `model/README.md`.
 
 ## Aufbau
 | Ordner | Inhalt |
 |---|---|
-| `app/` | Spiel: `index.html`, `main.js` (Szene, Figur, Kollision, Kamera), `seagulls.js` (Möwen-KI), `serve.py` |
+| `app/` | Spiel: `index.html`, `main.js` (Szene, Figur, Kollision, Kamera), `seagulls.js` (Möwen-KI), `parts.js`/`editor.js` (Bearbeiten-Modus), `serve.py` |
 | `app/tests/` | Playwright-Tests: `python app/tests/playwright_sim.py --out <ordner>` |
 | `model/` | Exportierte Modelle (`*.glb`) und die Blender-Skripte, die sie erzeugen (siehe `model/README.md`) |
 

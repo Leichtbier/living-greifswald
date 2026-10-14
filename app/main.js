@@ -6,9 +6,11 @@ import { UnrealBloomPass } from 'three/addons/postprocessing/UnrealBloomPass.js'
 import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
 import { createSeagulls } from './seagulls.js';
 import { setupTouch } from './touch.js';
+import { createParts } from './parts.js';
 
 const MODEL = '../model/fischerbrunnen.glb';
 const COLLIDERS = '../model/fischerbrunnen_colliders.glb';
+const EDITS = '../model/edits.json'; // Aenderungen aus dem Bearbeiten-Modus (B), siehe editor.js
 const params = new URLSearchParams(location.search);
 const DEMO = params.has('demo');
 
@@ -62,9 +64,10 @@ composer.addPass(new OutputPass());
 // ------------------------------------------------------------------ Laden
 const loader = new GLTFLoader();
 const pct = document.getElementById('pct');
-const [world, colGltf] = await Promise.all([
+const [world, colGltf, savedEdits] = await Promise.all([
   loader.loadAsync(MODEL, e => { if (e.total) pct.textContent = Math.round(100 * e.loaded / e.total) + ' %'; }),
   loader.loadAsync(COLLIDERS),
+  fetch(EDITS).then(r => r.ok ? r.json() : null).catch(() => null),
 ]);
 scene.add(world.scene);
 
@@ -102,8 +105,11 @@ colGltf.scene.traverse(o => {
   if (!o.isMesh) return;
   const b = new THREE.Box3().setFromObject(o);
   if (b.max.y < STEP_HEIGHT) return;
-  boxes.push({ minX: b.min.x, maxX: b.max.x, minZ: b.min.z, maxZ: b.max.z, maxY: b.max.y, name: o.name });
+  boxes.push({ minX: b.min.x, maxX: b.max.x, minZ: b.min.z, maxZ: b.max.z, maxY: b.max.y, name: o.name, part: o.userData.part, base: o.userData.box });
 });
+// Bewegliche Bauteile; Aenderungen, die noch nicht eingebacken sind, werden hier nachgezogen
+const parts = createParts(world.scene, boxes);
+if (savedEdits) parts.load(savedEdits);
 
 // ------------------------------------------------------------------ Spielfigur (in Anlehnung an die Style-Vorlage)
 function makeCharacter() {
@@ -192,10 +198,18 @@ addEventListener('keydown', e => {
   if (e.code === 'KeyN') toggleEvening();
   if (e.code === 'KeyH') toggleHelp();
   if (e.code === 'KeyG') cycleFollow();
+  if (e.code === 'KeyB' && !e.ctrlKey && !e.metaKey) toggleEditor();
 });
 addEventListener('keyup', e => keys.delete(e.code));
 addEventListener('blur', () => keys.clear());
 const toggleHelp = () => document.getElementById('hud').classList.toggle('hidden');
+
+// Bearbeiten-Modus (B, ?edit): wird erst beim ersten Einschalten geladen
+let editor = null;
+async function toggleEditor() {
+  editor ??= import('./editor.js').then(m => m.createEditor({ scene, camera, renderer, parts, panel: document.getElementById('editPanel') }));
+  (await editor).toggle();
+}
 
 const START_YAW = -Math.PI / 2; // Kamera steht westlich der Figur und blickt nach Osten (yaw 0 = Blick nach Norden)
 const cam = { yaw: START_YAW, pitch: 0.95, dist: 22, yawT: START_YAW, pitchT: 0.95, distT: 22, target: new THREE.Vector3() };
@@ -269,6 +283,14 @@ const lampLights = LAMPS.map(([x, y]) => {
   scene.add(l);
   return l;
 });
+// Lichtpools wandern mit verschobenen Laternen (Laterne_01..10 in derselben Reihenfolge wie LAMPS)
+const lampParts = parts.list.filter(p => /\/Laterne_\d+$/.test(p.path));
+function placeLampLights() {
+  if (lampParts.length !== LAMPS.length) return;
+  lampParts.forEach((p, i) => parts.toWorld(p, lampLights[i].position.set(LAMPS[i][0], 3.8, -LAMPS[i][1])));
+}
+placeLampLights();
+parts.onChange(placeLampLights);
 let evening = params.has('evening');
 function applyMood() {
   if (evening) {
@@ -402,7 +424,8 @@ addEventListener('resize', () => {
 
 cam.target.set(player.position.x, 1, player.position.z);
 document.getElementById('loading').classList.add('done');
-window.__game = { player, boxes, cam, resolveCollisions, seagulls, setFollow };
+window.__game = { player, boxes, cam, camera, resolveCollisions, seagulls, setFollow, parts, lampLights, toggleEditor, editor: () => editor };
+if (params.has('edit')) toggleEditor();
 
 // Selbsttest (?selftest): laeuft gegen Brunnen, Fassaden und Laternen und schreibt das Ergebnis ins DOM
 if (params.has('selftest')) {

@@ -22,6 +22,19 @@
     #loading { position: fixed; inset: 0; z-index: 50; display: grid; place-items: center; background: #8f86ad; color: var(--paper);
       font-size: 22px; transition: opacity .6s; }
     #loading.done { opacity: 0; pointer-events: none; }
+    /* Bearbeiten-Modus (editor.js) */
+    #editPanel { position: fixed; right: 16px; top: 16px; width: 300px; background: color-mix(in srgb, var(--paper) 92%, transparent);
+      color: var(--ink); border: 3px solid var(--accent); border-radius: 14px; padding: 10px 14px; font-size: 13px;
+      box-shadow: 4px 4px 0 var(--ink); user-select: none; }
+    #editPanel[hidden] { display: none; }
+    #editPanel h2 { font-size: 16px; margin: 0 0 6px; }
+    #editPanel h2 small { font-weight: normal; font-size: 12px; }
+    #editPanel .sel { font-weight: bold; margin: 4px 0 2px; word-break: break-word; }
+    #editPanel .val { font: 12px monospace; margin-bottom: 6px; }
+    #editPanel .row { margin: 3px 0; }
+    #editPanel .status { margin-top: 6px; font-size: 12px; opacity: .8; }
+    #editPanel .status.bad { color: #a01; opacity: 1; }
+    #editPanel kbd { background: #fff; border: 2px solid var(--ink); border-radius: 6px; padding: 0 4px; font-size: 11px; }
     #err { position: fixed; right: 16px; bottom: 16px; max-width: 50vw; background: #fff0f0; color: #900; font: 12px monospace;
       white-space: pre-wrap; padding: 8px; border: 2px solid #900; display: none; }
     /* Tablet/Smartphone (touch.js): nur mit body.touch sichtbar */
@@ -80,8 +93,10 @@
     <div class="row k">Mausrad – Zoom</div>
     <div class="row k"><kbd>N</kbd> – Tag / Abend</div>
     <div class="row k"><kbd>G</kbd> – einer Möwe folgen (nochmal: nächste, laufen: zurück)</div>
+    <div class="row k"><kbd>B</kbd> – Tische, Bänke &amp; Co. verschieben</div>
     <div class="row k"><kbd>H</kbd> – Hilfe ein/aus</div>
   </div>
+  <div id="editPanel" hidden></div>
   <div id="poi"></div>
   <!-- Tablet/Smartphone (touch.js): Steuerkreuz unten rechts, darüber Knöpfe; nur im Touch-Modus sichtbar -->
   <div class="touchui">

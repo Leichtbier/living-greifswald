@@ -8,7 +8,8 @@ Koordinaten: 1 Blender-Einheit = 1 m, Ursprung = Mitte des Brunnenbeckens, +X = 
 glTF-Export (Y-up): Norden = -Z, Osten = +X.
 Positionen sind aus dem Satellitenbild abgeleitet (1178x1600 px skaliert, ca. 0,06 m/px, Brunnenmitte bei px 594/617).
 """
-import bpy, bmesh, math, random, os, sys
+import bpy, bmesh, math, random, os, sys, json, functools
+from contextlib import contextmanager
 from mathutils import Vector, Matrix
 
 HERE = os.path.dirname(os.path.abspath(__file__))
@@ -166,14 +167,108 @@ mat("Sign_Board", (0.20, 0.22, 0.20))
 mat("Collider", (1, 0, 1))
 
 
+# ---------------------------------------------------------------- Bauteile (Editor: app/editor.js)
+# Bewegliche Objekte (Props, Skulpturen) merken sich pro Eckpunkt ihr Bauteil. Die Teile bilden einen Baum, ihr Pfad
+# (z.B. "Cafe_Nord/Gruppe_03/Tisch_01/Stuhl_02") ist der Schluessel in model/edits.json. Dort steht pro Teil eine
+# Verschiebung und Drehung um seinen Drehpunkt (Mitte der Grundflaeche), in three.js-Koordinaten:
+#   {"offset": [x, y, z] (m, x = Ost, y = oben, z = Sued), "rotY": Grad}
+# Die Aenderungen werden beim Bauen eingebacken; die Meshes bleiben zusammengefasst (gleiche Draw Calls).
+PARTS = [None]  # id -> {"path", "parent", "kind"}; id 0 = kein Teil
+PART_STACK = []
+EDITS_FILE = os.path.join(HERE, "edits.json")
+EDITS = json.load(open(EDITS_FILE, encoding="utf-8")) if os.path.exists(EDITS_FILE) else {}
+
+
+@contextmanager
+def part(name, root=False):
+    """Alle Flaechen, die im Block entstehen, gehoeren zu diesem Teil. Ohne umgebendes Wurzelteil (z.B. Kuebel auf
+    einem Dachgarten) passiert nichts."""
+    if not root and not PART_STACK:
+        yield 0
+        return
+    parent = 0 if root else PART_STACK[-1]
+    if root:
+        path = name
+    else:
+        n = sum(1 for p in PARTS[1:] if p["parent"] == parent and p["kind"] == name) + 1
+        path = f"{PARTS[parent]['path']}/{name}_{n:02d}"
+    PARTS.append({"path": path, "parent": parent, "kind": name})
+    pid = len(PARTS) - 1
+    PART_STACK.append(pid)
+    try:
+        yield pid
+    finally:
+        PART_STACK.pop()
+
+
+def as_part(kind):
+    """Dekorator: jeder Aufruf der Funktion wird ein eigenes Teil (Stuhl_01, Stuhl_02, ...)."""
+    def deco(fn):
+        @functools.wraps(fn)
+        def wrapper(*args, **kwargs):
+            with part(kind):
+                return fn(*args, **kwargs)
+        return wrapper
+    return deco
+
+
+def current_part():
+    return PART_STACK[-1] if PART_STACK else 0
+
+
+def to_three(v):
+    return [round(v.x, 4), round(v.z, 4), round(-v.y, 4)]
+
+
+def edit_matrix(path, pivot):
+    """Eintrag aus edits.json -> Matrix in Blender-Koordinaten (Drehung um three-Y = Drehung um Blender-Z)."""
+    e = EDITS.get(path)
+    if not e:
+        return Matrix.Identity(4)
+    ox, oy, oz = e.get("offset", (0, 0, 0))
+    return (Matrix.Translation(pivot + Vector((ox, -oz, oy))) @ Matrix.Rotation(math.radians(e.get("rotY", 0)), 4, 'Z')
+            @ Matrix.Translation(-pivot))
+
+
+def chain(pid):
+    out = []
+    while pid:
+        out.append(pid)
+        pid = PARTS[pid]["parent"]
+    return out[::-1]
+
+
+def bake_parts(me, vp):
+    """Drehpunkte bestimmen, edits.json auf die Eckpunkte anwenden, Teil-ID als Attribut _part ablegen.
+    Gibt die Teil-Tabelle fuer die glTF-Extras zurueck."""
+    ids = sorted({a for p in set(vp) if p for a in chain(p)})
+    lo = {i: Vector((1e9, 1e9, 1e9)) for i in ids}
+    hi = {i: Vector((-1e9, -1e9, -1e9)) for i in ids}
+    for v, p in zip(me.vertices, vp):
+        for a in chain(p):
+            lo[a] = Vector(map(min, lo[a], v.co))
+            hi[a] = Vector(map(max, hi[a], v.co))
+    for i in ids:  # Eltern stehen vor ihren Kindern (aufsteigende IDs)
+        pt = PARTS[i]
+        pt["pivot"] = Vector(((lo[i].x + hi[i].x) / 2, (lo[i].y + hi[i].y) / 2, lo[i].z))
+        pt["N"] = (PARTS[pt["parent"]]["N"] if pt["parent"] else Matrix.Identity(4)) @ edit_matrix(pt["path"], pt["pivot"])
+    for v, p in zip(me.vertices, vp):
+        if p:
+            v.co = PARTS[p]["N"] @ v.co
+    me.attributes.new("_part", 'FLOAT', 'POINT').data.foreach_set("value", [float(p) for p in vp])
+    return [[i, PARTS[i]["parent"], PARTS[i]["path"], to_three(PARTS[i]["pivot"]), EDITS.get(PARTS[i]["path"])] for i in ids]
+
+
 # ---------------------------------------------------------------- Mesh-Builder
 class MB:
     def __init__(self):
         self.v, self.f, self.m = [], [], []
+        self.vp = []  # Bauteil-ID pro Eckpunkt
 
     def poly(self, verts, faces, m):
         b = len(self.v)
         self.v += [tuple(x) for x in verts]
+        self.vp += [current_part()] * (len(self.v) - b)
         for fc in faces:
             self.f.append([b + i for i in fc])
             self.m.append(m)
@@ -197,6 +292,7 @@ class MB:
         b = len(self.v)
         idx = {v: i for i, v in enumerate(bm.verts)}
         self.v += [tuple(matrix @ v.co) for v in bm.verts]
+        self.vp += [current_part()] * len(bm.verts)
         for fc in bm.faces:
             self.f.append([b + idx[v] for v in fc.verts])
             self.m.append(m)
@@ -207,11 +303,12 @@ class MB:
         self.v += other.v
         self.f += [[i + b for i in fc] for fc in other.f]
         self.m += other.m
+        self.vp += other.vp
 
     def transformed(self, matrix):
         o = MB()
         o.v = [tuple(matrix @ Vector(p)) for p in self.v]
-        o.f, o.m = [list(x) for x in self.f], list(self.m)
+        o.f, o.m, o.vp = [list(x) for x in self.f], list(self.m), list(self.vp)
         return o
 
     def build(self, name, col, bevel=0.0, loc=(0, 0, 0)):
@@ -238,13 +335,25 @@ class MB:
             for li in poly.loop_indices:
                 co = me.vertices[me.loops[li].vertex_index].co + Vector(loc)
                 uv.data[li].uv = (co.dot(t) / sc, co.dot(bvec) / sc)
+        # Bauteile erst nach den UVs verschieben: die Textur bleibt am Teil wie beim Verschieben im Editor
+        parts = bake_parts(me, self.vp) if any(self.vp) else None
         bmx = bmesh.new()
         bmx.from_mesh(me)
-        bmesh.ops.remove_doubles(bmx, verts=bmx.verts, dist=0.0005)
+        if parts:  # nur innerhalb eines Teils verschmelzen, sonst kleben Teile aneinander
+            layer = bmx.verts.layers.float.get("_part")
+            groups = {}
+            for v in bmx.verts:
+                groups.setdefault(v[layer], []).append(v)
+            for vs in groups.values():
+                bmesh.ops.remove_doubles(bmx, verts=vs, dist=0.0005)
+        else:
+            bmesh.ops.remove_doubles(bmx, verts=bmx.verts, dist=0.0005)
         bmesh.ops.recalc_face_normals(bmx, faces=bmx.faces)
         bmx.to_mesh(me)
         bmx.free()
         ob = bpy.data.objects.new(name, me)
+        if parts:
+            ob["parts"] = json.dumps(parts, separators=(",", ":"))
         ob.location = loc
         col.objects.link(ob)
         if bevel > 0:
@@ -679,14 +788,27 @@ SMALL_COLS = []
 
 
 def small_col(x, y, hx, hy, h=1.0):
-    SMALL_COLS.append((x - hx, x + hx, y - hy, y + hy, h))
+    SMALL_COLS.append((x - hx, x + hx, y - hy, y + hy, h, current_part()))
+
+
+def part_collider(name, x0, x1, y0, y1, h, pid):
+    """Kollisionsbox eines Bauteils: bewegt sich mit dem Teil (achsparallele Huelle der verschobenen Box).
+    Die unverschobene Box steht in den Extras, damit der Editor sie zur Laufzeit genauso nachfuehren kann."""
+    N = PARTS[pid]["N"] if pid else Matrix.Identity(4)
+    pts = [N @ Vector((x, y, z)) for x in (x0, x1) for y in (y0, y1) for z in (0, h)]
+    mb = MB()
+    mb.box(tuple(min(p[i] for p in pts) for i in range(3)), tuple(max(p[i] for p in pts) for i in range(3)), "Collider")
+    ob = mb.build(name, COLS["Colliders"])
+    ob.display_type = 'WIRE'
+    if pid:
+        ob["part"] = PARTS[pid]["path"]
+        ob["box"] = [x0, 0.0, -y1, x1, h, -y0]  # three.js: min xyz, max xyz
+    return ob
 
 
 def build_small_colliders():
-    for i, (x0, x1, y0, y1, h) in enumerate(SMALL_COLS):
-        mb = MB()
-        mb.box((x0, y0, 0), (x1, y1, h), "Collider")
-        mb.build(f"COL_prop_{i:03d}", COLS["Colliders"]).display_type = 'WIRE'
+    for i, (x0, x1, y0, y1, h, pid) in enumerate(SMALL_COLS):
+        part_collider(f"COL_prop_{i:03d}", x0, x1, y0, y1, h, pid)
 
 
 def ground():
@@ -843,6 +965,7 @@ def place(mb, name, col, x, y, rz=0.0, z=0.0, bevel=0.0):
 
 
 # ================================================================ PROPS
+@as_part("Laterne")
 def lamp_double(mb, x, y, rz=0.0):
     small_col(x, y, 0.2, 0.2, 4.0)
     M = Matrix.Translation((x, y, 0)) @ Matrix.Rotation(rz, 4, 'Z')
@@ -862,6 +985,7 @@ def lamp_double(mb, x, y, rz=0.0):
     mb.merge(m.transformed(M))
 
 
+@as_part("Bank")
 def bench(mb, x, y, rz=0.0, L=2.0):
     q = abs(math.sin(rz)) > 0.7
     small_col(x, y, 0.35 if q else L / 2, L / 2 if q else 0.35, 0.8)
@@ -875,6 +999,7 @@ def bench(mb, x, y, rz=0.0, L=2.0):
     mb.merge(m.transformed(Matrix.Translation((x, y, 0)) @ Matrix.Rotation(rz, 4, 'Z')))
 
 
+@as_part("Stuhl")
 def chair(m, x, y, rz, mat_seat="Wicker"):
     c = MB()
     c.box((-0.22, -0.22, 0.43), (0.22, 0.22, 0.5), mat_seat)
@@ -885,6 +1010,7 @@ def chair(m, x, y, rz, mat_seat="Wicker"):
     m.merge(c.transformed(Matrix.Translation((x, y, 0)) @ Matrix.Rotation(rz, 4, 'Z')))
 
 
+@as_part("Tisch")
 def cafe_table(m, x, y, chairs=4, seat="Wicker"):
     small_col(x, y, 0.75, 0.75, 0.9)
     cyl(m, (x, y, 0.37), 0.04, 0.74, "Metal_Dark", seg=6)
@@ -897,6 +1023,7 @@ def cafe_table(m, x, y, chairs=4, seat="Wicker"):
         chair(m, x + 0.68 * math.cos(a), y + 0.68 * math.sin(a), a - math.pi / 2 + math.pi, seat)
 
 
+@as_part("Schirm")
 def umbrella_square(m, x, y, size, fabric, trim):
     cyl(m, (x, y, 1.3), 0.05, 2.6, "Wood_Light", seg=6)
     h = size / 2
@@ -909,11 +1036,13 @@ def umbrella_square(m, x, y, size, fabric, trim):
     sphere(m, (x, y, z2 + 0.06), 0.07, trim, sub=1)
 
 
+@as_part("Schirm")
 def umbrella_round(m, x, y, r, fabric):
     cyl(m, (x, y, 1.3), 0.05, 2.6, "Wood_Light", seg=6)
     cyl(m, (x, y, 2.6), r, 0.7, fabric, seg=10, r2=0.05)
 
 
+@as_part("Fahrrad")
 def bike(m, x, y, rz, color):
     q = abs(math.sin(rz)) > 0.7
     small_col(x, y, 0.3 if q else 0.8, 0.8 if q else 0.3, 1.0)
@@ -935,6 +1064,7 @@ def bike(m, x, y, rz, color):
     m.merge(b.transformed(Matrix.Translation((x, y, 0)) @ Matrix.Rotation(rz, 4, 'Z')))
 
 
+@as_part("Kuebel")
 def planter(m, x, y, s=1.0, wood="Wood_Light"):
     small_col(x, y, 0.5 * s, 0.5 * s, 0.6 * s)
     m.box((x - 0.5 * s, y - 0.5 * s, 0), (x + 0.5 * s, y + 0.5 * s, 0.6 * s), wood)
@@ -945,11 +1075,13 @@ def planter(m, x, y, s=1.0, wood="Wood_Light"):
         sphere(m, (x + 0.35 * s * math.cos(a), y + 0.35 * s * math.sin(a), 1.05 * s), 0.1 * s, random.choice(FLOWERS), sub=1)
 
 
+@as_part("Poller")
 def bollard(m, x, y):
     small_col(x, y, 0.15, 0.15, 0.6)
     m.box((x - 0.12, y - 0.12, 0), (x + 0.12, y + 0.12, 0.55), "Granite")
 
 
+@as_part("Aufsteller")
 def sandwich_board(m, x, y, rz):
     b = MB()
     for s in (-1, 1):
@@ -959,12 +1091,14 @@ def sandwich_board(m, x, y, rz):
     m.merge(b.transformed(Matrix.Translation((x, y, 0)) @ Matrix.Rotation(rz, 4, 'Z')))
 
 
+@as_part("Muelleimer")
 def trash_bin(m, x, y):
     small_col(x, y, 0.28, 0.28, 1.0)
     cyl(m, (x, y, 0.45), 0.25, 0.9, "Metal_Green", seg=10)
     cyl(m, (x, y, 0.93), 0.28, 0.06, "Metal_Green", seg=10)
 
 
+@as_part("Auto")
 def car(m, x, y, rz, color):
     q = abs(math.sin(rz)) > 0.7
     small_col(x, y, 0.9 if q else 2.0, 2.0 if q else 0.9, 1.5)
@@ -1017,6 +1151,11 @@ def tree(name, x, y, r=5.5, h=12.0):
 
 
 def flower_tower(name, x, y):
+    with part(name, root=True):
+        return _flower_tower(name, x, y)
+
+
+def _flower_tower(name, x, y):
     small_col(x, y, 0.9, 0.9, 2.8)
     m = MB()
     cyl(m, (x, y, 1.4), 0.08, 2.8, "Metal_Zinc", seg=8)
@@ -1061,15 +1200,16 @@ def build():
 
     # --- Skulpturen (Positionen aus Satellitenbild + Fotos) ---
     fx, fy = P(603, 605)
-    place(fishermen(), "Sculpture_Fischer", COLS["Sculptures"], fx, fy, rz=math.radians(10))
+    with part("Sculpture_Fischer", root=True) as fischer:
+        place(fishermen(), "Sculpture_Fischer", COLS["Sculptures"], fx, fy, rz=math.radians(10))
     bx, by = P(532, 585)
-    place(eel_boy(), "Sculpture_Aaljunge", COLS["Sculptures"], -BX + 0.85, by, rz=math.radians(-12))
+    with part("Sculpture_Aaljunge", root=True):
+        place(eel_boy(), "Sculpture_Aaljunge", COLS["Sculptures"], -BX + 0.85, by, rz=math.radians(-12))
     wx, wy = P(500, 655)
-    place(window_sculpture(), "Sculpture_Fenster", COLS["Sculptures"], wx, wy, rz=math.radians(8))
-    for nm, (x, y), s in [("Fenster", (wx, wy), (1.2, 2.2)), ("Fischer", (fx, fy), (1.6, 1.3))]:
-        mb = MB()
-        mb.box((x - s[0] / 2, y - s[1] / 2, 0), (x + s[0] / 2, y + s[1] / 2, 2.4), "Collider")
-        mb.build("COL_Sculpture_" + nm, COLS["Colliders"]).display_type = 'WIRE'
+    with part("Sculpture_Fenster", root=True) as fenster:
+        place(window_sculpture(), "Sculpture_Fenster", COLS["Sculptures"], wx, wy, rz=math.radians(8))
+    for nm, (x, y), s, pid in [("Fenster", (wx, wy), (1.2, 2.2), fenster), ("Fischer", (fx, fy), (1.6, 1.3), fischer)]:
+        part_collider("COL_Sculpture_" + nm, x - s[0] / 2, x + s[0] / 2, y - s[1] / 2, y + s[1] / 2, 2.4, pid)
 
     # --- Gebaeude: Westseite (Fassadenflucht x = -17.9) ---
     house("B_W1_VeroModa", -32.0, -17.6, -7.4, 10.3, 14.5, "gable_y", 7.0, "Wall_White", "Roof_Terracotta", floors=4,
@@ -1245,78 +1385,95 @@ def vegetation():
 
 
 def props():
+    # Wurzelteil = Objektname; "Gruppe" fasst einen Schirm mit seinen Tischen zusammen (Editor: Klick waehlt die Gruppe,
+    # weitere Klicks gehen tiefer: Tisch, Stuhl)
     # --- Cafe Nordost (2x2 quadratische Schirme, Satellit px 600-740 / 380-530) ---
     c = MB()
-    for (px, py) in [(632, 415), (700, 415), (632, 490), (700, 490)]:
-        x, y = P(px, py)
-        umbrella_square(c, x, y, 3.9, "Fabric_Cream", "Fabric_Teal")
-        cafe_table(c, x - 0.8, y - 0.6, 4, "Chair_Dark")
-        cafe_table(c, x + 0.9, y + 0.7, 3, "Chair_Dark")
-    planter(c, *P(590, 380), s=0.8)
-    planter(c, *P(745, 380), s=0.8)
-    sandwich_board(c, *P(600, 545), 0.2)
-    c.build("Cafe_Nord", COLS["Props"])
+    with part("Cafe_Nord", root=True):
+        for (px, py) in [(632, 415), (700, 415), (632, 490), (700, 490)]:
+            x, y = P(px, py)
+            with part("Gruppe"):
+                umbrella_square(c, x, y, 3.9, "Fabric_Cream", "Fabric_Teal")
+                cafe_table(c, x - 0.8, y - 0.6, 4, "Chair_Dark")
+                cafe_table(c, x + 0.9, y + 0.7, 3, "Chair_Dark")
+        planter(c, *P(590, 380), s=0.8)
+        planter(c, *P(745, 380), s=0.8)
+        sandwich_board(c, *P(600, 545), 0.2)
+        c.build("Cafe_Nord", COLS["Props"])
     # --- Eiscafe West (3 orange Schirme, px 350-435 / 750-990) ---
     c = MB()
-    for py in (790, 870, 950):
-        x, y = P(392, py)
-        umbrella_square(c, x, y, 4.6, "Fabric_Orange", "Fabric_Cream")
-        cafe_table(c, x - 1.0, y - 1.0, 4)
-        cafe_table(c, x + 1.0, y + 0.9, 4)
-        cafe_table(c, x + 1.0, y - 1.1, 2)
-    for py in (745, 1000):
-        planter(c, *P(415, py), s=0.75)
-    x, y = P(380, 690)
-    umbrella_round(c, x, y, 1.9, "Fabric_Red")
-    cafe_table(c, x, y, 4)
-    sandwich_board(c, -9.5, -9.0, 1.3)
-    c.build("Cafe_Fellini", COLS["Props"])
+    with part("Cafe_Fellini", root=True):
+        for py in (790, 870, 950):
+            x, y = P(392, py)
+            with part("Gruppe"):
+                umbrella_square(c, x, y, 4.6, "Fabric_Orange", "Fabric_Cream")
+                cafe_table(c, x - 1.0, y - 1.0, 4)
+                cafe_table(c, x + 1.0, y + 0.9, 4)
+                cafe_table(c, x + 1.0, y - 1.1, 2)
+        for py in (745, 1000):
+            planter(c, *P(415, py), s=0.75)
+        x, y = P(380, 690)
+        with part("Gruppe"):
+            umbrella_round(c, x, y, 1.9, "Fabric_Red")
+            cafe_table(c, x, y, 4)
+        sandwich_board(c, -9.5, -9.0, 1.3)
+        c.build("Cafe_Fellini", COLS["Props"])
     # --- Cafe vor Vero Moda / unter der Linde (rote Schirme) ---
     c = MB()
-    for (x, y) in [(-13.8, 4.5), (-13.8, 8.8)]:
-        umbrella_round(c, x, y, 1.8, "Fabric_Red")
-        cafe_table(c, x, y, 4)
-    c.build("Cafe_Linde", COLS["Props"])
+    with part("Cafe_Linde", root=True):
+        for (x, y) in [(-13.8, 4.5), (-13.8, 8.8)]:
+            with part("Gruppe"):
+                umbrella_round(c, x, y, 1.8, "Fabric_Red")
+                cafe_table(c, x, y, 4)
+        c.build("Cafe_Linde", COLS["Props"])
 
     # --- Blumenturm suedlich des Brunnens (Foto "north") ---
     flower_tower("Prop_Blumenturm", *P(585, 825))
 
     # --- Laternen ---
     m = MB()
-    for (x, y, r) in [(-15.5, 1.0, 0), (-15.8, -13.0, 0), (-15.8, -30.0, 0), (-15.8, -46.0, 0), (11.8, -8.5, 0),
-                      (11.8, -20.5, 0), (-7.0, 15.5, 0), (9.5, 15.0, 0), (-7.0, -24.0, 0), (25.0, -29.0, 0)]:
-        lamp_double(m, x, y, r)
-    m.build("Props_Laternen", COLS["Props"])
+    with part("Props_Laternen", root=True):
+        for (x, y, r) in [(-15.5, 1.0, 0), (-15.8, -13.0, 0), (-15.8, -30.0, 0), (-15.8, -46.0, 0), (11.8, -8.5, 0),
+                          (11.8, -20.5, 0), (-7.0, 15.5, 0), (9.5, 15.0, 0), (-7.0, -24.0, 0), (25.0, -29.0, 0)]:
+            lamp_double(m, x, y, r)
+        m.build("Props_Laternen", COLS["Props"])
 
     # --- Baenke, Poller, Fahrraeder, Muell, Kuebel ---
     m = MB()
-    bench(m, -8.0, 4.5, math.pi / 2)
-    bench(m, -8.0, -1.0, math.pi / 2)
-    bench(m, 4.0, -8.0, math.pi)
-    bench(m, -3.0, 13.5, 0)
-    for i in range(9):
-        bollard(m, -6.0 + i * 2.2, -29.8)
-    for i in range(5):
-        bollard(m, 13.0, -36.0 - i * 2.0)
-    for i in range(6):
-        bike(m, -17.0, -13.5 - i * 0.65, math.pi / 2 + 0.1, random.choice(["Fabric_Red", "Fabric_Teal", "Metal_Dark", "Fabric_Mustard"]))
-    for i in range(5):
-        bike(m, 12.8, -0.8 - i * 0.65, -math.pi / 2, random.choice(["Fabric_Red", "Fabric_Teal", "Metal_Dark", "Fabric_Green"]))
-    for i in range(4):
-        bike(m, -6.0 + i * 0.7, -28.4, 0.05, random.choice(["Fabric_Red", "Car_Blue", "Metal_Dark"]))
-    for (x, y) in [(-16.8, -2.0), (12.6, -12.5), (-16.8, -40.0), (8.0, 17.4)]:
-        trash_bin(m, x, y)
-    for (x, y, s) in [(-16.9, -18.0, 0.8), (-16.9, -16.0, 0.8), (13.0, 2.8, 0.7), (13.0, -26.0, 0.8), (-6.8, -33.0, 0.8),
-                      (11.6, -33.0, 0.8), (-16.6, 9.8, 0.8), (-0.8, 17.6, 0.7), (13.2, 17.6, 0.7)]:
-        planter(m, x, y, s)
-    m.build("Props_Stadtmobiliar", COLS["Props"])
+    with part("Props_Stadtmobiliar", root=True):
+        bench(m, -8.0, 4.5, math.pi / 2)
+        bench(m, -8.0, -1.0, math.pi / 2)
+        bench(m, 4.0, -8.0, math.pi)
+        bench(m, -3.0, 13.5, 0)
+        with part("Pollerreihe"):
+            for i in range(9):
+                bollard(m, -6.0 + i * 2.2, -29.8)
+        with part("Pollerreihe"):
+            for i in range(5):
+                bollard(m, 13.0, -36.0 - i * 2.0)
+        with part("Fahrradreihe"):
+            for i in range(6):
+                bike(m, -17.0, -13.5 - i * 0.65, math.pi / 2 + 0.1, random.choice(["Fabric_Red", "Fabric_Teal", "Metal_Dark", "Fabric_Mustard"]))
+        with part("Fahrradreihe"):
+            for i in range(5):
+                bike(m, 12.8, -0.8 - i * 0.65, -math.pi / 2, random.choice(["Fabric_Red", "Fabric_Teal", "Metal_Dark", "Fabric_Green"]))
+        with part("Fahrradreihe"):
+            for i in range(4):
+                bike(m, -6.0 + i * 0.7, -28.4, 0.05, random.choice(["Fabric_Red", "Car_Blue", "Metal_Dark"]))
+        for (x, y) in [(-16.8, -2.0), (12.6, -12.5), (-16.8, -40.0), (8.0, 17.4)]:
+            trash_bin(m, x, y)
+        for (x, y, s) in [(-16.9, -18.0, 0.8), (-16.9, -16.0, 0.8), (13.0, 2.8, 0.7), (13.0, -26.0, 0.8), (-6.8, -33.0, 0.8),
+                          (11.6, -33.0, 0.8), (-16.6, 9.8, 0.8), (-0.8, 17.6, 0.7), (13.2, 17.6, 0.7)]:
+            planter(m, x, y, s)
+        m.build("Props_Stadtmobiliar", COLS["Props"])
 
     # --- Autos in der Nordstrasse (Satellit px 380-520 / 0-140) ---
     m = MB()
-    car(m, *P(400, 60), math.pi / 2 + 0.02, "Car_Cream")
-    car(m, *P(490, 80), -math.pi / 2, "Car_Blue")
-    car(m, -10.5, 33.5, math.pi / 2, "Car_Red")
-    m.build("Props_Autos", COLS["Props"])
+    with part("Props_Autos", root=True):
+        car(m, *P(400, 60), math.pi / 2 + 0.02, "Car_Cream")
+        car(m, *P(490, 80), -math.pi / 2, "Car_Blue")
+        car(m, -10.5, 33.5, math.pi / 2, "Car_Red")
+        m.build("Props_Autos", COLS["Props"])
 
     # --- Lichterketten ueber dem Platz ---
     m = MB()
@@ -1352,10 +1509,14 @@ def export(path, cols):
         for o in COLS[cn].objects:
             o.select_set(True)
     bpy.ops.export_scene.gltf(filepath=path, export_format='GLB', use_selection=True, export_apply=True,
-                              export_yup=True, export_extras=True, export_cameras=False, export_lights=False)
+                              export_yup=True, export_extras=True, export_attributes=True, export_cameras=False, export_lights=False)
 
 
 export(os.path.join(HERE, "fischerbrunnen.glb"), ["Ground", "Buildings", "Fountain", "Sculptures", "Vegetation", "Props", "Lights", "Markers"])
 export(os.path.join(HERE, "fischerbrunnen_colliders.glb"), ["Colliders"])
 tris = sum(sum(len(p.vertices) - 2 for p in o.data.polygons) for o in scene.objects if o.type == 'MESH' and not o.name.startswith("COL_"))
 print("TRIS", tris, "OBJECTS", len([o for o in scene.objects if o.type == 'MESH']))
+print("PARTS", len(PARTS) - 1, "EDITS", len(EDITS))
+unknown = sorted(set(EDITS) - {p["path"] for p in PARTS[1:]})
+if unknown:
+    print("WARNUNG: edits.json nennt Teile, die es nicht (mehr) gibt:", ", ".join(unknown))
