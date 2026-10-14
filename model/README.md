@@ -33,7 +33,7 @@ Hohe Gebäude (Rathaus-Giebel ~26 m, Keimblatt-Giebel ~29 m) können die Draufsi
 zwischen Kamera und Spieler ggf. transparent schalten (Raycast gegen `fischerbrunnen_colliders.glb`).
 
 ## Spiel-Prototyp (`../app`)
-`app/start.bat` doppelklicken (nutzt `python` aus dem PATH oder die Umgebungsvariable `PYTHON`) → lokaler Server auf `http://localhost:8080/app/` (Browser öffnet sich automatisch).
+`app/start.bat` doppelklicken (Python-Auswahl siehe Haupt-README) → lokaler Server auf `http://localhost:8080/app/` (Browser öffnet sich automatisch).
 Steuerung: WASD/Pfeile laufen, Shift rennen, Q/E oder rechte Maus ziehen = Kamera drehen, Mausrad = Zoom, N = Tag/Abend.
 Kollision: Kreis (r = 0,35 m) gegen die Rechtecke aus `fischerbrunnen_colliders.glb`. Gebäude zwischen Kamera und Figur werden ausgeblendet.
 URL-Parameter: `?evening` (Abend), `?demo` (Figur läuft automatisch), `?selftest` (Kollisionstest, Ergebnis im DOM).

@@ -7,11 +7,14 @@ Erster Ort: der **Fischmarkt mit dem Fischerbrunnen**, mit frechen Silbermöwen.
 (GitHub Pages, Quelle: Branch `main`, Ordner `/`; `index.html` leitet nach `app/` weiter.)
 
 ## Starten
-```
-cd app
-python serve.py 8080        # oder start.bat doppelklicken
-```
-Dann öffnet sich `http://localhost:8080/app/`. three.js wird vom CDN (jsdelivr) geladen.
+`app\start.bat` doppelklicken – öffnet `http://localhost:8080/app/` im Browser. Das Skript nimmt das erste Python, das wirklich läuft:
+1. Umgebungsvariable `PYTHON` (z. B. `set PYTHON=%USERPROFILE%\.conda\envs\claude-code-env\python.exe`)
+2. die conda-Umgebung `%USERPROFILE%\.conda\envs\claude-code-env`, falls vorhanden
+3. `python` aus dem PATH (der Microsoft-Store-Platzhalter wird übersprungen)
+4. der `py`-Launcher
+
+Oder von Hand: `cd app` und `python serve.py 8080` (Python ≥ 3.7, nur Standardbibliothek; `--no-browser` unterdrückt den Browser).
+three.js wird vom CDN (jsdelivr) geladen.
 
 Steuerung: WASD/Pfeile laufen, Shift rennen, Q/E oder rechte Maustaste ziehen = Kamera drehen, Mausrad = Zoom,
 N = Tag/Abend, G = einer Möwe folgen, H = Hilfe.
