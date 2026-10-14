@@ -90,6 +90,8 @@ def mat(name, color, rough=0.85, metal=0.0, emit=None, emit_strength=1.0, alpha=
 mat("Cobble", (1, 1, 1), tex="cobble.png", tex_scale=3.0)
 mat("Granite", (0.86, 0.84, 0.80), tex="granite.png", tex_scale=1.5)
 mat("Granite_Dark", (0.62, 0.60, 0.58), tex="granite.png", tex_scale=1.5)
+mat("Concrete", (0.72, 0.71, 0.68), rough=0.95, tex="granite.png", tex_scale=3.0)
+mat("Bench_Glow", (1.0, 0.86, 0.60), emit=(1.0, 0.74, 0.42), emit_strength=2.0)
 mat("Basin_Floor", (0.55, 0.72, 0.66), tex="granite.png", tex_scale=1.2)
 mat("Water", (0.42, 0.78, 0.76), rough=0.05, alpha=0.72, emit=(0.2, 0.45, 0.45), emit_strength=0.15)
 mat("Plinth", (0.58, 0.52, 0.47))
@@ -1170,8 +1172,19 @@ def sandwich_board(m, x, y, rz):
 
 @as_part("Steinbank")
 def stone_bench(m, x0, x1, y0, y1, h=0.45):
+    """Lange Bank wie am Rathaus (Foto screenshots/bank.png): Betonfuesse mit Leuchte vorn, Betonplatte,
+    Holzbeplankung. Laengs in y, Vorderseite bei x0."""
     small_col((x0 + x1) / 2, (y0 + y1) / 2, (x1 - x0) / 2, (y1 - y0) / 2, h)
-    m.box((x0, y0, 0), (x1, y1, h), "Granite")
+    seat, wood = h - 0.12, 0.04  # Unterkante Platte, Lattenstaerke
+    for c in (y0 + 0.45, (y0 + y1) / 2, y1 - 0.45):
+        m.box((x0 + 0.04, c - 0.25, 0), (x1 - 0.04, c + 0.25, seat), "Concrete")
+        m.box((x0 + 0.02, c - 0.15, 0.10), (x0 + 0.045, c + 0.15, 0.16), "Bench_Glow")  # Leuchte im Fuss
+    m.box((x0, y0, seat), (x1, y1, h - wood), "Concrete")
+    n, gap = 4, 0.02
+    w = (x1 - x0 - 0.06 - (n - 1) * gap) / n
+    for i in range(n):
+        xa = x0 + 0.03 + i * (w + gap)
+        m.box((xa, y0 + 0.03, h - wood), (xa + w, y1 - 0.03, h), "Wood_Light")
 
 
 @as_part("Muelleimer")
