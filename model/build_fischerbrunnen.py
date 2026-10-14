@@ -1606,7 +1606,26 @@ unknown = sorted(k for k in set(EDITS) - set(PATH_ID) if not (EDITS[k].get("copy
 if unknown:
     print("WARNUNG: edits.json nennt Teile, die es nicht (mehr) gibt:", ", ".join(unknown))
 NOTES_FILE = os.path.join(HERE, "annotations.json")
-notes = [a for a in json.load(open(NOTES_FILE, encoding="utf-8")) if a.get("status") != "erledigt"] if os.path.exists(NOTES_FILE) else []
+all_notes = json.load(open(NOTES_FILE, encoding="utf-8")) if os.path.exists(NOTES_FILE) else []
+# Erledigte Anmerkungen leben bis zum naechsten Einbacken (so lange sieht der Nutzer die Antwort im Editor):
+# beim ersten Build als "baked" markiert, beim folgenden samt Screenshot geloescht
+kept = []
+for a in all_notes:
+    if a.get("status") == "erledigt" and a.get("baked"):
+        shot = os.path.join(HERE, (a.get("shot") or {}).get("file", ""))
+        if os.path.isfile(shot):
+            os.remove(shot)
+        print("Anmerkung geloescht (erledigt):", a["id"], a.get("text", "")[:60])
+        continue
+    if a.get("status") == "erledigt":
+        a["baked"] = True
+    kept.append(a)
+if all_notes:
+    with open(NOTES_FILE, "w", encoding="utf-8", newline="
+") as f:
+        f.write(json.dumps(kept, ensure_ascii=False, indent=2) + "
+")
+notes = [a for a in kept if a.get("status") != "erledigt"]
 if notes:  # Anmerkungen aus dem Bearbeiten-Modus, die noch umgesetzt werden muessen (siehe CLAUDE.md)
     print(f"OFFENE ANMERKUNGEN ({len(notes)}) in model/annotations.json:")
     for a in notes:

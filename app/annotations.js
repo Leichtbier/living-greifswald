@@ -1,6 +1,7 @@
 // Anmerkungen fuer Claude im Bearbeiten-Modus: Alt+Klick setzt einen Punkt auf die angeklickte Flaeche und fragt nach
 // einem Text. Gespeichert wird ueber serve.py in model/annotations.json (+ Screenshot in model/annotations/<id>.jpg);
-// beim naechsten Einbacken arbeitet Claude die offenen Anmerkungen ab und markiert sie als erledigt (mit Antwort).
+// beim naechsten Einbacken arbeitet Claude die offenen Anmerkungen ab und markiert sie als erledigt (mit Antwort);
+// erledigte bleiben bis zum darauffolgenden Einbacken sichtbar und werden dann geloescht (Build-Skript).
 // Klick auf einen Punkt zeigt/aendert/loescht ihn.
 // Damit die Stelle eindeutig im Build-Skript zu finden ist, steht im Eintrag: Objekt, Bauteil (bei Kopien auch das
 // Original), Material und Seite der Flaeche, Punkt in Welt- und in Skript-Koordinaten (Blender: x = Ost, y = Nord,
@@ -80,6 +81,7 @@ export async function createAnnotations({ scene, camera, renderer, world, parts,
     if (!text) return isNew ? close() : remove();
     current.text = text;
     if (done !== undefined) current.status = done ? 'erledigt' : 'offen';
+    if (!done) delete current.baked; // wieder offen: erst nach dem naechsten Erledigen loeschen
     if (isNew) {
       const img = current._img;
       delete current._img;

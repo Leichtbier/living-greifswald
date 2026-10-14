@@ -11,6 +11,8 @@
      nachfragen statt raten.
    - Danach `"status": "erledigt"` und `"reply": "<kurz, was getan wurde>"` setzen (die Antwort sieht der Nutzer im Editor).
      Nicht Umsetzbares bleibt `offen` mit einer `reply`, die erklärt warum.
+   - Erledigte Anmerkungen werden spätestens beim nächsten Einbacken gelöscht: der Build markiert erledigte mit
+     `"baked": true` und löscht beim folgenden Build die so markierten samt Screenshot (nicht von Hand nachbauen).
 2. Bauen: `cd model` und `blender -b --factory-startup --python build_fischerbrunnen.py` (Blender 5.1 unter
    `C:/Program Files/Blender Foundation/Blender 5.1/blender.exe`). Die Ausgabe nennt unbekannte Pfade in `edits.json`
    und noch offene Anmerkungen.
