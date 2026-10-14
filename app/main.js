@@ -453,7 +453,7 @@ if (params.has('selftest')) {
     boxes: boxes.length,
     northToFountain: walk(0, 10, 0, -1, 10),        // erwartet z ~ 3.95
     westToVeroModa: walk(-10, 0, -1, 0, 15),        // erwartet x ~ -17.25
-    eastToRathaus: walk(8, 15, 1, 0, 15),           // erwartet x ~ 13.85
+    eastToRathaus: walk(8, 5, 1, 0, 15),            // erwartet x ~ 13.85 (noerdlich der Steinbaenke)
     southToKeimblatt: walk(2, 20, 0, 1, 30),        // erwartet z ~ 33.65 (Strasse davor frei)
     streetEastAlongRathaus: walk(0, 30.5, 1, 0, 25),// Strasse suedlich vom Rathaus, erwartet x weit im Osten
     intoLamp: walk(-15.5, 4, 0, -1, 6),             // Laterne bei z=-1 -> stoppt bei ~ -0.55

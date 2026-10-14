@@ -1,0 +1,154 @@
+[
+  {
+    "id": "amv8h44h9",
+    "status": "erledigt",
+    "created": "2026-10-14 20:58",
+    "target": "B_E2_Rathaus",
+    "object": "B_E2_Rathaus",
+    "part": null,
+    "source": null,
+    "material": "Leaf_Dark",
+    "side": "Nord",
+    "pos": [
+      13.582,
+      0.855,
+      7.065
+    ],
+    "normal": [
+      -0.307,
+      0.197,
+      -0.931
+    ],
+    "scriptPos": [
+      13.582,
+      -7.065,
+      0.855
+    ],
+    "view": [
+      8.263,
+      5.328,
+      -1.38
+    ],
+    "shot": {
+      "file": "annotations/amv8h44h9.jpg",
+      "x": 0.295,
+      "y": 0.367
+    },
+    "text": "Entferne bitte die Planze",
+    "reply": "Entfernt: die beiden Blumentöpfe neben der Rathaustür (door_pots=False beim Rathaus)."
+  },
+  {
+    "id": "amv8h4rde",
+    "status": "erledigt",
+    "created": "2026-10-14 20:59",
+    "target": "B_E2_Rathaus",
+    "object": "B_E2_Rathaus",
+    "part": null,
+    "source": null,
+    "material": "Leaf_Dark",
+    "side": "West",
+    "pos": [
+      13.53,
+      0.908,
+      9.65
+    ],
+    "normal": [
+      -0.975,
+      0.118,
+      0.189
+    ],
+    "scriptPos": [
+      13.53,
+      -9.65,
+      0.908
+    ],
+    "view": [
+      4.207,
+      6.14,
+      9.062
+    ],
+    "shot": {
+      "file": "annotations/amv8h4rde.jpg",
+      "x": 0.472,
+      "y": 0.311
+    },
+    "text": "entferne auch diese Pflanze",
+    "reply": "Entfernt (gehörte zum selben Topfpaar an der Rathaustür)."
+  },
+  {
+    "id": "amv8h55sg",
+    "status": "erledigt",
+    "created": "2026-10-14 20:59",
+    "target": "B_E2_Rathaus",
+    "object": "B_E2_Rathaus",
+    "part": null,
+    "source": null,
+    "material": "Granite",
+    "side": "oben",
+    "pos": [
+      13.234,
+      0.45,
+      14.804
+    ],
+    "normal": [
+      0,
+      1,
+      0
+    ],
+    "scriptPos": [
+      13.234,
+      -14.804,
+      0.45
+    ],
+    "view": [
+      6.054,
+      6.998,
+      9.352
+    ],
+    "shot": {
+      "file": "annotations/amv8h55sg.jpg",
+      "x": 0.488,
+      "y": 0.289
+    },
+    "text": "Mach aus den Bänken objekte",
+    "reply": "Die zwei Granit-Steinbänke vor der Rathaus-Westfassade sind jetzt eigene Objekte (Props_Steinbaenke/Steinbank_01, _02) mit Kollider – verschieben, drehen, kopieren, löschen geht."
+  },
+  {
+    "id": "amv8h5ql7",
+    "status": "erledigt",
+    "created": "2026-10-14 21:00",
+    "target": "Cafe_Nord/Gruppe_04/Tisch_01/Stuhl_04",
+    "object": "Cafe_Nord",
+    "part": "Cafe_Nord/Gruppe_04/Tisch_01/Stuhl_04",
+    "source": null,
+    "material": "Chair_Dark",
+    "side": "oben",
+    "pos": [
+      5.761,
+      0.5,
+      -6.186
+    ],
+    "normal": [
+      0,
+      1,
+      0
+    ],
+    "scriptPos": [
+      5.761,
+      6.186,
+      0.5
+    ],
+    "view": [
+      9.774,
+      4.195,
+      0.636
+    ],
+    "shot": {
+      "file": "annotations/amv8h5ql7.jpg",
+      "x": 0.334,
+      "y": 0.463
+    },
+    "text": "Alle Stühle stehen ferkehrt herum, nicht nur dieser.",
+    "reply": "Behoben für alle Cafétische: die Stühle waren um 180° verdreht, die Lehne zeigt jetzt vom Tisch weg."
+  }
+]

@@ -534,13 +534,15 @@ def flowerbox(mb, face, plane, u, z, w):
 
 
 def door(mb, face, plane, u, w=1.3, h=2.5, m="Wood_Door", frame="Trim_White", pots=True):
-    if pots and m == "Wood_Door":
+    if m == "Wood_Door":
+        # ohne Toepfe trotzdem durchrechnen (Wegwerf-Mesh): die Zufallsfolge fuer alles Spaetere bleibt gleich
+        pm = mb if pots else MB()
         for s in (-1, 1):
             c = face_point(face, plane, u + s * (w / 2 + 0.55), 0.0, 0.4)
-            cyl(mb, (c[0], c[1], 0.25), 0.22, 0.5, "Wall_Orange", seg=8, r2=0.28)
-            sphere(mb, (c[0], c[1], 0.75), 0.36, random.choice(["Leaf_Green", "Leaf_Dark"]), sub=1, jitter=0.15)
+            cyl(pm, (c[0], c[1], 0.25), 0.22, 0.5, "Wall_Orange", seg=8, r2=0.28)
+            sphere(pm, (c[0], c[1], 0.75), 0.36, random.choice(["Leaf_Green", "Leaf_Dark"]), sub=1, jitter=0.15)
             for k in range(3):
-                sphere(mb, (c[0] + random.uniform(-0.2, 0.2), c[1] + random.uniform(-0.2, 0.2), 0.95), 0.08, random.choice(FLOWERS), sub=1)
+                sphere(pm, (c[0] + random.uniform(-0.2, 0.2), c[1] + random.uniform(-0.2, 0.2), 0.95), 0.08, random.choice(FLOWERS), sub=1)
     face_box(mb, face, plane, u, 0, w + 0.3, h + 0.2, 0.06, 0.05, frame)
     face_box(mb, face, plane, u, 0, w, h, 0.09, 0.05, m)
     face_box(mb, face, plane, u, h * 0.72, w, 0.05, 0.12, 0.0, frame)
@@ -699,7 +701,7 @@ def gable_windows(mb, face, plane, uc, half, eave, roof_h, rows, frame, glass=No
 def house(name, x0, x1, y0, y1, eave, roof="gable_x", roof_h=6.0, wall="Wall_Cream", roofmat="Roof_Terracotta",
           floors=3, faces="NSEW", shop=(), awning=None, gables=None, frame="Frame_Cream", cornice="Trim_White",
           dormers=(), doors=None, ivy_faces=(), win_w=1.15, win_h=1.65, spacing=2.9, arch_windows=False,
-          gable_rows=3, gable_glass=None, glass=None, extra=None, plinth=True, shutters=None):
+          gable_rows=3, gable_glass=None, glass=None, extra=None, plinth=True, shutters=None, door_pots=True):
     body, det = MB(), MB()
     gables = gables or {}
     doors = doors or {}
@@ -749,7 +751,7 @@ def house(name, x0, x1, y0, y1, eave, roof="gable_x", roof_h=6.0, wall="Wall_Cre
                     continue
                 window(det, fc, plane, u, z, win_w, win_h, frame, glass=glass, arch=arch_windows, shutters=shutters)
         for d in dlist:
-            door(det, fc, plane, d)
+            door(det, fc, plane, d, pots=door_pots)
         # Giebel
         style = gables.get(fc)
         is_gable_face = (roof == "gable_x" and fc in "WE") or (roof == "gable_y" and fc in "SN")
@@ -1079,7 +1081,7 @@ def cafe_table(m, x, y, chairs=4, seat="Wicker"):
         cyl(m, (x + 0.1, y, 0.83), 0.04, 0.12, "Glass_Warm", seg=6)
     for i in range(chairs):
         a = i * 2 * math.pi / chairs + random.uniform(-0.2, 0.2)
-        chair(m, x + 0.68 * math.cos(a), y + 0.68 * math.sin(a), a - math.pi / 2 + math.pi, seat)
+        chair(m, x + 0.68 * math.cos(a), y + 0.68 * math.sin(a), a - math.pi / 2, seat)  # Lehne zeigt vom Tisch weg
 
 
 @as_part("Schirm")
@@ -1148,6 +1150,12 @@ def sandwich_board(m, x, y, rz):
         slab(b, top, 0.04, "Sign_Board")
     b.box((-0.25, -0.18, 0.35), (0.25, 0.18, 0.37), "Wood_Light")
     m.merge(b.transformed(Matrix.Translation((x, y, 0)) @ Matrix.Rotation(rz, 4, 'Z')))
+
+
+@as_part("Steinbank")
+def stone_bench(m, x0, x1, y0, y1, h=0.45):
+    small_col((x0 + x1) / 2, (y0 + y1) / 2, (x1 - x0) / 2, (y1 - y0) / 2, h)
+    m.box((x0, y0, 0), (x1, y1, h), "Granite")
 
 
 @as_part("Muelleimer")
@@ -1391,9 +1399,7 @@ def rathaus():
         sphere(d, (cx, -15.5, eave + rh + 4.4), 0.18, "Gold", sub=1)
         # Bogendurchgang im Sueden der Westfassade
         arch_passage(d, 'W', x0, -22.8, 3.6, 4.6, "Trim_White")
-        # Steinbank vor der Westfassade
-        d.box((x0 - 1.0, -12.0, 0), (x0 - 0.45, -6.0, 0.45), "Granite")
-        d.box((x0 - 1.0, -19.5, 0), (x0 - 0.45, -13.5, 0.45), "Granite")
+        # (Steinbaenke vor der Westfassade: eigene Objekte, siehe props / Props_Steinbaenke)
         # Gauben-Reihen auf beiden Dachseiten
         for xx in (19.0, 23.0, 31.0, 35.0):
             for fc in ('N', 'S'):
@@ -1401,7 +1407,7 @@ def rathaus():
 
     house("B_E2_Rathaus", x0, x1, y0, y1, eave, "gable_x", rh, "Wall_Rathaus_Red", "Roof_TerracottaDark", floors=3,
           faces="WN", gables={'W': 'volute'}, frame="Frame_Grey", cornice="Trim_White", win_w=1.5, win_h=2.0,
-          spacing=3.3, gable_rows=4, doors={'W': [-8.5]}, extra=extra)
+          spacing=3.3, gable_rows=4, doors={'W': [-8.5]}, door_pots=False, extra=extra)
 
 
 def keimblatt():
@@ -1533,6 +1539,13 @@ def props():
         car(m, *P(490, 80), -math.pi / 2, "Car_Blue")
         car(m, -10.5, 33.5, math.pi / 2, "Car_Red")
         m.build("Props_Autos", COLS["Props"])
+
+    # --- Granit-Steinbaenke vor der Rathaus-Westfassade (x0 = 14.2) ---
+    m = MB()
+    with part("Props_Steinbaenke", root=True):
+        for y0, y1 in ((-12.0, -6.0), (-19.5, -13.5)):
+            stone_bench(m, 13.2, 13.75, y0, y1)
+        m.build("Props_Steinbaenke", COLS["Props"])
 
     # --- Lichterketten ueber dem Platz ---
     m = MB()
