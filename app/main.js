@@ -195,7 +195,8 @@ addEventListener('keydown', e => {
 addEventListener('keyup', e => keys.delete(e.code));
 addEventListener('blur', () => keys.clear());
 
-const cam = { yaw: 0, pitch: 0.95, dist: 22, yawT: 0, pitchT: 0.95, distT: 22, target: new THREE.Vector3() };
+const START_YAW = -Math.PI / 2; // Kamera steht westlich der Figur und blickt nach Osten (yaw 0 = Blick nach Norden)
+const cam = { yaw: START_YAW, pitch: 0.95, dist: 22, yawT: START_YAW, pitchT: 0.95, distT: 22, target: new THREE.Vector3() };
 let dragging = false, lastX = 0, lastY = 0;
 renderer.domElement.addEventListener('contextmenu', e => e.preventDefault());
 renderer.domElement.addEventListener('pointerdown', e => { if (e.button === 2 || e.button === 1) { dragging = true; lastX = e.clientX; lastY = e.clientY; } });
