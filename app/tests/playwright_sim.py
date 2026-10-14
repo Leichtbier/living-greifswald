@@ -10,6 +10,7 @@ Startet selbst einen lokalen Server, oeffnet die App headless (WebGL ueber Swift
   gallery   - Screenshot aller Moewen-Animationen (?gallery)
   play      - Echtzeit: Spiel laeuft 20 s, Figur steht -> Moewen kommen frech naeher; Screenshots
   chase     - Echtzeit: Figur rennt per Tastatur auf eine Bodenmoewe zu -> sie muss fliehen
+  touch     - Smartphone-Steuerung (?touch): Steuerkreuz laufen/rennen, Wischen dreht, zwei Finger zoomen, Knoepfe
 Konsolenfehler der Seite lassen den Lauf fehlschlagen. Exit-Code 0 = alles ok.
 """
 import argparse, functools, http.server, json, os, sys, threading, time
@@ -51,7 +52,7 @@ def renderer_name(browser):
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--out", default=os.path.join(ROOT, "app", "tests", "out"))
-    ap.add_argument("--only", default="selftest,gullsim,gallery,play,chase")
+    ap.add_argument("--only", default="selftest,gullsim,gallery,play,chase,touch")
     ap.add_argument("--soft", action="store_true", help="SwiftShader statt GPU (sehr langsam)")
     a = ap.parse_args()
     os.makedirs(a.out, exist_ok=True)
@@ -63,8 +64,8 @@ def main():
         browser = launch(pw, a.soft)
         print('WebGL:', renderer_name(browser))
 
-        def page_for(query, wait_sel=None):
-            page = browser.new_page(viewport={"width": 1400, "height": 850})
+        def page_for(query, wait_sel=None, **opts):
+            page = browser.new_page(**{"viewport": {"width": 1400, "height": 850}, **opts})
             errors = []
             page.on("pageerror", lambda e: errors.append(str(e)))
             page.on("console", lambda m: m.type == "error" and "favicon" not in (m.location or {}).get("url", "") and errors.append(m.text))
@@ -150,6 +151,59 @@ def main():
                 after = page.evaluate(f"(() => {{ const g = window.__game.seagulls.gulls[{info['id']}]; return g.surface + ':' + g.state; }})()")
                 fled = after.startswith("air") or after.endswith("hop")
                 finish("chase", page, err, {**info, "after": after}, fled)
+
+        if "touch" in only:
+            page, err = page_for("?touch", viewport={"width": 844, "height": 390}, has_touch=True, device_scale_factor=2)
+            page.wait_for_timeout(800)
+            visible = page.is_visible("#touchPad") and page.is_visible("#touchEvening")
+            pad = page.locator("#touchPad").bounding_box()
+            cx, cy, rad = pad["x"] + pad["width"] / 2, pad["y"] + pad["height"] / 2, pad["width"] / 2
+            setup = "(() => { const G = window.__game; G.player.position.set(0, 0, 22); G.cam.yaw = G.cam.yawT = 0; })()"
+            pos = "window.__game.player.position.toArray().map(v => +v.toFixed(2))"
+
+            def drag(dy, ms):  # Finger aufs Steuerkreuz, um dy (Anteil am Radius) nach oben ziehen, halten
+                page.evaluate(setup)
+                page.wait_for_timeout(100)
+                a = page.evaluate(pos)
+                page.mouse.move(cx, cy); page.mouse.down(); page.mouse.move(cx, cy - dy * rad, steps=4)
+                page.wait_for_timeout(ms)
+                held = page.evaluate("document.getElementById('touchPad').className")
+                page.mouse.up()
+                b = page.evaluate(pos)
+                return a, b, held
+
+            w0, w1, wcls = drag(0.9, 800)
+            r0, r1, rcls = drag(1.4, 800)
+            walk, run = w0[2] - w1[2], r0[2] - r1[2]
+            # Kameragesten: kuenstliche Touch-Pointer auf der Leinwand
+            cam = page.evaluate("""() => {
+              const c = document.querySelector('canvas'), G = window.__game;
+              const ev = (type, id, x, y) => c.dispatchEvent(new PointerEvent(type, { pointerId: id, pointerType: 'touch', clientX: x, clientY: y, bubbles: true, cancelable: true, isPrimary: id === 11 }));
+              const y0 = G.cam.yawT, d0 = G.cam.distT;
+              ev('pointerdown', 11, 300, 200); ev('pointermove', 11, 400, 200); ev('pointerup', 11, 400, 200);
+              const y1 = G.cam.yawT;
+              ev('pointerdown', 12, 300, 200); ev('pointerdown', 13, 400, 200);
+              ev('pointermove', 12, 250, 200); ev('pointermove', 13, 450, 200);
+              ev('pointerup', 12, 250, 200); ev('pointerup', 13, 450, 200);
+              return { dreh: +(y1 - y0).toFixed(3), zoom: +(G.cam.distT / d0).toFixed(3) };
+            }""")
+            hud0 = page.evaluate("document.getElementById('hud').classList.contains('hidden')")
+            page.tap("#touchHelp")
+            hud1 = page.evaluate("document.getElementById('hud').classList.contains('hidden')")
+            page.tap("#touchHelp")
+            # Moewe folgen: Knopf schaltet ein (zweimal: naechste Moewe), Steuerkreuz beendet den Folgemodus
+            following = "document.getElementById('touchFollow').classList.contains('on')"
+            page.tap("#touchFollow"); page.tap("#touchFollow")
+            f_on = page.evaluate(following)
+            page.screenshot(path=os.path.join(a.out, "touch_follow.png"))
+            drag(0.9, 300)
+            f_off = not page.evaluate(following)
+            page.screenshot(path=os.path.join(a.out, "touch.png"))
+            data = {"sichtbar": visible, "laufen": [round(walk, 2), w1[0] - w0[0], wcls], "rennen": [round(run, 2), rcls], "kamera": cam,
+                    "hilfeKnopf": hud0 != hud1, "folgen": [f_on, f_off]}
+            good = (visible and walk > 1.5 and abs(w1[0] - w0[0]) < 0.3 and run > walk * 1.4 and "run" in rcls
+                    and cam["dreh"] < 0 and cam["zoom"] < 1 and hud0 != hud1 and f_on and f_off)
+            finish("touch", page, err, data, good)
 
         browser.close()
     srv.shutdown()

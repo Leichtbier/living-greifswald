@@ -2,7 +2,7 @@
 <html lang="de">
 <head>
   <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
   <title>Fischmarkt Greifswald</title>
   <style>
     :root { --ink: #3a2c2a; --paper: #fbf1dc; --accent: #e8794a; }
@@ -19,11 +19,46 @@
       border: 3px solid var(--ink); border-radius: 14px; padding: 8px 16px; box-shadow: 4px 4px 0 var(--ink);
       font-size: 15px; opacity: 0; transition: opacity .3s; pointer-events: none; text-align: center; max-width: 80vw; }
     #poi.show { opacity: 1; }
-    #loading { position: fixed; inset: 0; display: grid; place-items: center; background: #8f86ad; color: var(--paper);
+    #loading { position: fixed; inset: 0; z-index: 50; display: grid; place-items: center; background: #8f86ad; color: var(--paper);
       font-size: 22px; transition: opacity .6s; }
     #loading.done { opacity: 0; pointer-events: none; }
     #err { position: fixed; right: 16px; bottom: 16px; max-width: 50vw; background: #fff0f0; color: #900; font: 12px monospace;
       white-space: pre-wrap; padding: 8px; border: 2px solid #900; display: none; }
+    /* Tablet/Smartphone (touch.js): nur mit body.touch sichtbar */
+    .touchui, #hud .t { display: none; }
+    body.touch { -webkit-user-select: none; user-select: none; -webkit-touch-callout: none; }
+    body.touch canvas { touch-action: none; }
+    body.touch #hud .k { display: none; }
+    body.touch #hud .t { display: block; }
+    body.touch #hud.hidden .t { display: none; }
+    body.touch #hud { left: calc(16px + env(safe-area-inset-left)); top: calc(16px + env(safe-area-inset-top)); }
+    body.touch .touchui { --pad: 168px; display: block; position: fixed; width: var(--pad);
+      right: calc(16px + env(safe-area-inset-right)); bottom: calc(16px + env(safe-area-inset-bottom)); }
+    body.touch #poi { bottom: calc(28px + env(safe-area-inset-bottom)); max-width: calc(100vw - var(--pad, 168px) - 64px);
+      left: calc(16px + env(safe-area-inset-left)); transform: none; }
+    .touchbtns { display: flex; justify-content: flex-end; gap: 10px; margin-bottom: 12px; }
+    .touchbtns button { width: 48px; height: 48px; padding: 0; display: grid; place-items: center; cursor: pointer;
+      background: var(--paper); color: var(--ink); border: 3px solid var(--ink); border-radius: 50%;
+      box-shadow: 3px 3px 0 var(--ink); font: bold 20px "Trebuchet MS", system-ui, sans-serif; touch-action: manipulation; }
+    .touchbtns button.on { background: var(--accent); }
+    .touchbtns button:active { transform: translate(2px, 2px); box-shadow: 1px 1px 0 var(--ink); background: var(--accent); }
+    #touchPad { position: relative; width: var(--pad); height: var(--pad); border-radius: 50%; touch-action: none;
+      background: color-mix(in srgb, var(--paper) 55%, transparent); border: 3px solid var(--ink); box-sizing: border-box;
+      box-shadow: 4px 4px 0 var(--ink); }
+    #touchPad svg { position: absolute; inset: 0; width: 100%; height: 100%; }
+    #touchPad .ring { fill: none; stroke: color-mix(in srgb, var(--ink) 25%, transparent); stroke-width: 1.5; stroke-dasharray: 3 4; }
+    #touchPad path { fill: var(--ink); fill-opacity: 0.45; transition: fill .08s; }
+    #touchPad path.on { fill: var(--accent); }
+    #touchKnob { position: absolute; left: 50%; top: 50%; width: 40%; height: 40%; margin: -20% 0 0 -20%; border-radius: 50%;
+      background: radial-gradient(circle at 40% 35%, #fff, var(--paper)); border: 3px solid var(--ink); box-sizing: border-box;
+      box-shadow: 2px 3px 0 var(--ink); pointer-events: none; }
+    #touchPad.held #touchKnob { background: radial-gradient(circle at 40% 35%, #ffd2b8, var(--accent)); }
+    #touchPad.run { border-color: var(--accent); }
+    @media (max-height: 480px), (max-width: 480px) {
+      body.touch .touchui { --pad: 132px; } body.touch #poi { --pad: 132px; }
+      .touchbtns button { width: 40px; height: 40px; font-size: 17px; }
+      body.touch #hud { font-size: 12px; padding: 8px 10px; } body.touch #hud h1 { font-size: 15px; }
+    }
   </style>
   <script type="importmap">
   { "imports": {
@@ -36,15 +71,35 @@
   <div id="loading">Lade den Fischmarkt … <span id="pct"></span></div>
   <div id="hud">
     <h1>🐟 Fischmarkt Greifswald</h1>
-    <div class="row"><kbd>W</kbd><kbd>A</kbd><kbd>S</kbd><kbd>D</kbd> / Pfeile – laufen</div>
-    <div class="row"><kbd>Shift</kbd> – rennen</div>
-    <div class="row"><kbd>Q</kbd><kbd>E</kbd> / rechte Maustaste ziehen – Kamera drehen</div>
-    <div class="row">Mausrad – Zoom</div>
-    <div class="row"><kbd>N</kbd> – Tag / Abend</div>
-    <div class="row"><kbd>G</kbd> – einer Möwe folgen</div>
-    <div class="row"><kbd>H</kbd> – Hilfe ein/aus</div>
+    <div class="row t">Steuerkreuz – laufen, über den Rand ziehen – rennen</div>
+    <div class="row t">Wischen – Kamera drehen, zwei Finger – Zoom</div>
+    <div class="row t">Knöpfe über dem Steuerkreuz – Tag / Abend, Möwe folgen (nächste Möwe; Laufen beendet), Hilfe</div>
+    <div class="row k"><kbd>W</kbd><kbd>A</kbd><kbd>S</kbd><kbd>D</kbd> / Pfeile – laufen</div>
+    <div class="row k"><kbd>Shift</kbd> – rennen</div>
+    <div class="row k"><kbd>Q</kbd><kbd>E</kbd> / rechte Maustaste ziehen – Kamera drehen</div>
+    <div class="row k">Mausrad – Zoom</div>
+    <div class="row k"><kbd>N</kbd> – Tag / Abend</div>
+    <div class="row k"><kbd>G</kbd> – einer Möwe folgen (nochmal: nächste, laufen: zurück)</div>
+    <div class="row k"><kbd>H</kbd> – Hilfe ein/aus</div>
   </div>
   <div id="poi"></div>
+  <!-- Tablet/Smartphone (touch.js): Steuerkreuz unten rechts, darüber Knöpfe; nur im Touch-Modus sichtbar -->
+  <div class="touchui">
+    <div class="touchbtns">
+      <button id="touchEvening" tabindex="-1" title="Tag / Abend" aria-label="Tag / Abend">☾</button>
+      <button id="touchFollow" tabindex="-1" title="Einer Möwe folgen" aria-label="Einer Möwe folgen">
+        <svg viewBox="0 0 24 24" width="24" height="24"><path d="M2 12q5-6 10 0q5-6 10 0" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
+      <button id="touchHelp" tabindex="-1" title="Hilfe ein/aus" aria-label="Hilfe ein/aus">?</button>
+    </div>
+    <div id="touchPad">
+      <svg viewBox="-50 -50 100 100">
+        <circle class="ring" r="40"/>
+        <path class="up" d="M0,-41L9,-29H-9Z"/><path class="down" d="M0,41L9,29H-9Z"/>
+        <path class="left" d="M-41,0L-29,9V-9Z"/><path class="right" d="M41,0L29,9V-9Z"/>
+      </svg>
+      <div id="touchKnob"></div>
+    </div>
+  </div>
   <div id="err"></div>
   <script>
     window.addEventListener('error', e => { const el = document.getElementById('err'); el.style.display = 'block'; el.textContent += (e.message || e) + '\n'; });

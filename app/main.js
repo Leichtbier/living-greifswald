@@ -5,6 +5,7 @@ import { RenderPass } from 'three/addons/postprocessing/RenderPass.js';
 import { UnrealBloomPass } from 'three/addons/postprocessing/UnrealBloomPass.js';
 import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
 import { createSeagulls } from './seagulls.js';
+import { setupTouch } from './touch.js';
 
 const MODEL = '../model/fischerbrunnen.glb';
 const COLLIDERS = '../model/fischerbrunnen_colliders.glb';
@@ -189,11 +190,12 @@ const keys = new Set();
 addEventListener('keydown', e => {
   keys.add(e.code);
   if (e.code === 'KeyN') toggleEvening();
-  if (e.code === 'KeyH') document.getElementById('hud').classList.toggle('hidden');
+  if (e.code === 'KeyH') toggleHelp();
   if (e.code === 'KeyG') cycleFollow();
 });
 addEventListener('keyup', e => keys.delete(e.code));
 addEventListener('blur', () => keys.clear());
+const toggleHelp = () => document.getElementById('hud').classList.toggle('hidden');
 
 const START_YAW = -Math.PI / 2; // Kamera steht westlich der Figur und blickt nach Osten (yaw 0 = Blick nach Norden)
 const cam = { yaw: START_YAW, pitch: 0.95, dist: 22, yawT: START_YAW, pitchT: 0.95, distT: 22, target: new THREE.Vector3() };
@@ -201,13 +203,23 @@ let dragging = false, lastX = 0, lastY = 0;
 renderer.domElement.addEventListener('contextmenu', e => e.preventDefault());
 renderer.domElement.addEventListener('pointerdown', e => { if (e.button === 2 || e.button === 1) { dragging = true; lastX = e.clientX; lastY = e.clientY; } });
 addEventListener('pointerup', () => dragging = false);
+const rotateCam = (dx, dy) => {
+  cam.yawT -= dx * 0.006;
+  cam.pitchT = THREE.MathUtils.clamp(cam.pitchT + dy * 0.004, 0.45, 1.45);
+};
+const zoomCam = f => { cam.distT = THREE.MathUtils.clamp(cam.distT * f, 7, 60); };
 addEventListener('pointermove', e => {
   if (!dragging) return;
-  cam.yawT -= (e.clientX - lastX) * 0.006;
-  cam.pitchT = THREE.MathUtils.clamp(cam.pitchT + (e.clientY - lastY) * 0.004, 0.45, 1.45);
+  rotateCam(e.clientX - lastX, e.clientY - lastY);
   lastX = e.clientX; lastY = e.clientY;
 });
-renderer.domElement.addEventListener('wheel', e => { e.preventDefault(); cam.distT = THREE.MathUtils.clamp(cam.distT * (1 + Math.sign(e.deltaY) * 0.1), 7, 60); }, { passive: false });
+renderer.domElement.addEventListener('wheel', e => { e.preventDefault(); zoomCam(1 + Math.sign(e.deltaY) * 0.1); }, { passive: false });
+
+// Tablet/Smartphone: Steuerkreuz, Kameragesten und Knoepfe (?touch zeigt die Steuerung auch am PC)
+const stick = setupTouch({
+  canvas: renderer.domElement, rotate: rotateCam, zoom: zoomCam, force: params.has('touch'),
+  actions: { evening: () => toggleEvening(), follow: () => cycleFollow(), help: toggleHelp },
+});
 
 function updateCamera(dt) {
   const k = 1 - Math.exp(-dt * 8);
@@ -308,8 +320,12 @@ const seagulls = await createSeagulls({
   scene, loader, world: world.scene, boxes, bounds: BOUNDS, player,
   lamps: LAMPS.map(([x, y]) => [x, -y]), count: +(params.get('gulls') ?? 10),
 });
-let follow = -1; // G: Kamera folgt einer Moewe
-function cycleFollow() { follow = follow + 1 >= seagulls.gulls.length ? -1 : follow + 1; }
+let follow = -1; // G: Kamera folgt einer Moewe (reihum); Laufen beendet den Folgemodus
+function setFollow(i) {
+  follow = i;
+  document.getElementById('touchFollow').classList.toggle('on', follow >= 0);
+}
+function cycleFollow() { setFollow(follow + 1 >= seagulls.gulls.length ? -1 : follow + 1); }
 
 // ------------------------------------------------------------------ Hauptschleife
 const water = world.scene.getObjectByName('Fountain_Water');
@@ -332,9 +348,12 @@ function step() {
   if (keys.has('KeyS') || keys.has('ArrowDown')) wish.sub(fwd);
   if (keys.has('KeyD') || keys.has('ArrowRight')) wish.add(right);
   if (keys.has('KeyA') || keys.has('ArrowLeft')) wish.sub(right);
+  let walk = 1; // Anteil am Lauftempo (Steuerkreuz analog, Tastatur immer voll)
+  if (stick.amount > 0) { wish.copy(fwd).multiplyScalar(stick.y).addScaledVector(right, stick.x); walk = stick.amount; }
+  if (follow >= 0 && wish.lengthSq() > 0) setFollow(-1);
   if (DEMO) { demoT += dt; wish.set(Math.sin(demoT * 0.4), 0, -1); cam.yawT = 0.4 * Math.sin(demoT * 0.2); }
-  const running = keys.has('ShiftLeft') || keys.has('ShiftRight');
-  const speed = running ? 7.5 : 4.2;
+  const running = keys.has('ShiftLeft') || keys.has('ShiftRight') || stick.run;
+  const speed = running ? 7.5 : 4.2 * walk;
   if (wish.lengthSq() > 0) wish.normalize().multiplyScalar(speed);
   vel.lerp(wish, 1 - Math.exp(-dt * 12));
 
@@ -383,7 +402,7 @@ addEventListener('resize', () => {
 
 cam.target.set(player.position.x, 1, player.position.z);
 document.getElementById('loading').classList.add('done');
-window.__game = { player, boxes, cam, resolveCollisions, seagulls, setFollow: i => { follow = i; } };
+window.__game = { player, boxes, cam, resolveCollisions, seagulls, setFollow };
 
 // Selbsttest (?selftest): laeuft gegen Brunnen, Fassaden und Laternen und schreibt das Ergebnis ins DOM
 if (params.has('selftest')) {
@@ -411,7 +430,7 @@ if (params.has('gallery')) {
   Object.assign(cam, { yaw: Math.PI, yawT: Math.PI, pitch: 0.32, pitchT: 0.32, dist: 7.5, distT: 7.5 });
   cam.target.set(5, 1, 21);
 }
-if (params.has('follow')) follow = +params.get('follow');
+if (params.has('follow')) setFollow(+params.get('follow'));
 // ?gullsim=<s>: simuliert die Moewen-KI mit festem Zeitschritt und prueft Plausibilitaet (Headless-Test)
 if (params.has('gullsim')) {
   const secs = +params.get('gullsim') || 120, dt = 1 / 30;
