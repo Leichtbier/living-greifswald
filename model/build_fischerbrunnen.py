@@ -1172,19 +1172,32 @@ def sandwich_board(m, x, y, rz):
 
 @as_part("Steinbank")
 def stone_bench(m, x0, x1, y0, y1, h=0.45):
-    """Lange Bank wie am Rathaus (Foto screenshots/bank.png): Betonfuesse mit Leuchte vorn, Betonplatte,
-    Holzbeplankung. Laengs in y, Vorderseite bei x0."""
+    """Lange Bank wie am Rathaus (Foto screenshots/bank.png): schmale Betonfuesse mit Leuchten zur Innenseite
+    (unter die Sitzflaeche), dicke Betonplatte, die vorn und hinten uebersteht, Holzbeplankung in die Platte
+    eingelassen (Betonrand ringsum). Laengs in y, Vorderseite bei x0."""
     small_col((x0 + x1) / 2, (y0 + y1) / 2, (x1 - x0) / 2, (y1 - y0) / 2, h)
-    seat, wood = h - 0.12, 0.04  # Unterkante Platte, Lattenstaerke
-    for c in (y0 + 0.45, (y0 + y1) / 2, y1 - 0.45):
-        m.box((x0 + 0.04, c - 0.25, 0), (x1 - 0.04, c + 0.25, seat), "Concrete")
-        m.box((x0 + 0.02, c - 0.15, 0.10), (x0 + 0.045, c + 0.15, 0.16), "Bench_Glow")  # Leuchte im Fuss
+    seat, wood, rim, inset = h - 0.16, 0.03, 0.05, 0.10  # Unterkante Platte, Lattenstaerke, Betonrand, Fuss-Einzug
+    fx0, fx1 = x0 + inset, x1 - inset
+    feet = (y0 + 0.45, (y0 + y1) / 2, y1 - 0.45)
+    for k, c in enumerate(feet):
+        m.box((fx0, c - 0.25, 0), (fx1, c + 0.25, seat), "Concrete")
+        # Leuchten auf den Seitenflaechen, die unter die Sitzflaeche zeigen (Endfuesse: nur innen, Mitte: beide)
+        for s in ((1,) if k == 0 else (-1,) if k == len(feet) - 1 else (-1, 1)):
+            yf = c + s * 0.25
+            ya, yb = sorted((yf, yf + s * 0.02))
+            xm = (fx0 + fx1) / 2
+            m.box((xm - 0.10, ya, 0.08), (xm + 0.10, yb, 0.14), "Bench_Glow")
+    # Platte mit Vertiefung fuer die Beplankung
     m.box((x0, y0, seat), (x1, y1, h - wood), "Concrete")
-    n, gap = 4, 0.02
-    w = (x1 - x0 - 0.06 - (n - 1) * gap) / n
+    m.box((x0, y0, h - wood), (x0 + rim, y1, h), "Concrete")
+    m.box((x1 - rim, y0, h - wood), (x1, y1, h), "Concrete")
+    m.box((x0 + rim, y0, h - wood), (x1 - rim, y0 + rim, h), "Concrete")
+    m.box((x0 + rim, y1 - rim, h - wood), (x1 - rim, y1, h), "Concrete")
+    n, gap = 4, 0.015
+    w = (x1 - x0 - 2 * rim - (n - 1) * gap) / n
     for i in range(n):
-        xa = x0 + 0.03 + i * (w + gap)
-        m.box((xa, y0 + 0.03, h - wood), (xa + w, y1 - 0.03, h), "Wood_Light")
+        xa = x0 + rim + i * (w + gap)
+        m.box((xa, y0 + rim, h - wood), (xa + w, y1 - rim, h - 0.004), "Wood_Light")
 
 
 @as_part("Muelleimer")
